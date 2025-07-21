@@ -11,19 +11,20 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/dependencies/include
 )
 
+# === Set up OpenGL Platform === #
 add_library(openGLPlatform
     ${PROJECT_SOURCE_DIR}/platform/openGLPlatform/OpenGLPlatform.cpp
     ${PROJECT_SOURCE_DIR}/dependencies/src/glad.c
 )
 
 target_include_directories(openGLPlatform PRIVATE
-    ${PROJECT_SOURCE_DIR}/platform
     ${PROJECT_SOURCE_DIR}/dependencies/include
 )
 
 target_link_libraries(openGLPlatform PRIVATE
     ${PROJECT_SOURCE_DIR}/dependencies/lib/libglfw.3.3.dylib
 )
+# ============================= #
 
 # Find macOS frameworks
 find_library(OPENGL_FRAMEWORK OpenGL)
