@@ -7,21 +7,23 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${PROJECT_SOURCE_DIR}/platform
+    ${PROJECT_SOURCE_DIR}/Renderer
     ${PROJECT_SOURCE_DIR}/dependencies/include
 )
 
-# === Set up OpenGL Platform === #
-add_library(openGLPlatform
-    ${PROJECT_SOURCE_DIR}/platform/openGLPlatform/OpenGLPlatform.cpp
+# === Set up OpenGL Renderer === #
+add_library(OpenGLRenderer
+    ${PROJECT_SOURCE_DIR}/Renderer/OpenGLRenderer/OpenGLRenderer.cpp
     ${PROJECT_SOURCE_DIR}/dependencies/src/glad.c
 )
 
-target_include_directories(openGLPlatform PRIVATE
+target_include_directories(OpenGLRenderer PRIVATE
     ${PROJECT_SOURCE_DIR}/dependencies/include
+    ${PROJECT_SOURCE_DIR}/Renderer
+    ${PROJECT_SOURCE_DIR}/Engine
 )
 
-target_link_libraries(openGLPlatform PRIVATE
+target_link_libraries(OpenGLRenderer PRIVATE
     ${PROJECT_SOURCE_DIR}/dependencies/lib/libglfw.3.3.dylib
 )
 # ============================= #
@@ -34,7 +36,7 @@ find_library(COREVIDEO_FRAMEWORK CoreVideo)
 find_library(COREFOUNDATION_FRAMEWORK CoreFoundation)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    openGLPlatform
+    OpenGLRenderer
     ${OPENGL_FRAMEWORK}
     ${COCOA_FRAMEWORK}
     ${IOKIT_FRAMEWORK}

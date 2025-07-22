@@ -1,0 +1,127 @@
+#include "../Renderer.h"
+#include "OpenGLRenderer.h"
+#include <cassert>
+#include <iostream>
+
+#include "glad/glad.h"
+#include "glfw/glfw3.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
+void OpenGLRenderer::init()
+{
+    if (initialized)
+        return;
+
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    stbi_set_flip_vertically_on_load(true);
+
+    initialized = true;
+}
+
+void OpenGLRenderer::destroy()
+{
+    glfwTerminate();
+}
+
+void OpenGLRenderer::framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+OpenGLRenderer::OpenGLRenderer(char *title, unsigned int width, unsigned int height)
+{
+    if (!initialized)
+        init();
+    window =
+        glfwCreateWindow(width, height, title, NULL, NULL);
+    assert(window && "Failed to create GLFW window");
+
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    glfwMakeContextCurrent(window);
+
+    int load = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+    if (!load)
+        return;
+    glEnable(GL_DEPTH_TEST);
+    stbi_set_flip_vertically_on_load(true);
+}
+
+GLFWwindow *OpenGLRenderer::get_window()
+{
+    return window;
+}
+
+void OpenGLRenderer::run()
+{
+    std::cout << "Running render loop" << std::endl;
+    while (!glfwWindowShouldClose(window))
+    {
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    destroy();
+}
+
+void OpenGLRenderer::uploadMesh(MeshComponent cmesh)
+{
+    auto iter = meshes.find(cmesh.id);
+    if(iter != meshes.end()) {
+        // already loaded
+        return;
+    }
+
+    auto mesh = std::make_shared<RenderMesh>();
+    // create buffers/arrays
+    glGenVertexArrays(1, &mesh->VAO);
+    glGenBuffers(1, &mesh->VBO);
+    glGenBuffers(1, &mesh->EBO);
+
+    glBindVertexArray(mesh->VAO);
+    // load data into vertex buffers
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+    glBufferData(GL_ARRAY_BUFFER, cmesh.vertices.size() * sizeof(Vertex), &cmesh.vertices[0], GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, cmesh.indices.size() * sizeof(unsigned int), &cmesh.indices[0], GL_STATIC_DRAW);
+
+    // set the vertex attribute pointers
+    // vertex Positions
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+    // vertex normals
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Normal));
+    // vertex texture coords
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, TexCoords));
+    // vertex tangent
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Tangent));
+    // vertex bitangent
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Bitangent));
+    // ids
+    glEnableVertexAttribArray(5);
+    glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
+
+    // weights
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
+    glBindVertexArray(0);
+
+    meshes[cmesh.id] = mesh;
+}
+
+bool OpenGLRenderer::initialized = false;
