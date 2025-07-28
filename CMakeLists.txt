@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${PROJECT_SOURCE_DIR}/Renderer
+    ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/dependencies/include
 )
 
@@ -19,8 +19,7 @@ add_library(OpenGLRenderer
 
 target_include_directories(OpenGLRenderer PRIVATE
     ${PROJECT_SOURCE_DIR}/dependencies/include
-    ${PROJECT_SOURCE_DIR}/Renderer
-    ${PROJECT_SOURCE_DIR}/Engine
+    ${PROJECT_SOURCE_DIR}
 )
 
 target_link_libraries(OpenGLRenderer PRIVATE

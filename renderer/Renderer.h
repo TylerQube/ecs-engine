@@ -1,8 +1,8 @@
 #pragma once
-#include <Engine/Component/MeshComponent.h>
+#include "Engine/Component/Renderable.h"
 
-class Renderer 
+class Renderer
 {
-    public:
-        void bindMesh();
+public:
+    virtual void renderMesh(WorldMesh* mesh) = 0;
 };

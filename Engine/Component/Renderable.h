@@ -1,3 +1,4 @@
+#pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glad/glad.h>
@@ -27,21 +28,14 @@ struct Texture
     std::string path;
 };
 
-class MeshComponent
+struct WorldMesh
 {
-public:
-    unsigned int id;
-    // mesh Data
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
-    unsigned int VAO;
+};
 
-    // constructor
-    MeshComponent(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
-    {
-        this->vertices = vertices;
-        this->indices = indices;
-        this->textures = textures;
-    }
+struct CRenderable
+{
+    std::vector<WorldMesh> meshes;
 };

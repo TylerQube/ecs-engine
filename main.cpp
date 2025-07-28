@@ -6,8 +6,8 @@ main ()
 {
   std::cout << "Hello, CMake!" << std::endl;
 
-  OpenGLRenderer platform("Hello Window!", 800, 400);
+  OpenGLRenderer renderer("Hello Window!", 800, 400);
   std::cout << "Starting render loop" << std::endl;
-  platform.run();
+  renderer.run();
   return 0;
 }

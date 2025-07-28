@@ -1,7 +1,8 @@
-#include "../Renderer.h"
+#include "Renderer/Renderer.h"
 #include "OpenGLRenderer.h"
 #include <cassert>
 #include <iostream>
+#include <memory>
 
 #include "glad/glad.h"
 #include "glfw/glfw3.h"
@@ -36,7 +37,7 @@ void OpenGLRenderer::framebuffer_size_callback(GLFWwindow *window, int width, in
     glViewport(0, 0, width, height);
 }
 
-OpenGLRenderer::OpenGLRenderer(char *title, unsigned int width, unsigned int height)
+OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned int height)
 {
     if (!initialized)
         init();
@@ -74,13 +75,14 @@ void OpenGLRenderer::run()
     destroy();
 }
 
-void OpenGLRenderer::uploadMesh(MeshComponent cmesh)
+void OpenGLRenderer::uploadMesh(WorldMesh* wMesh)
 {
-    auto iter = meshes.find(cmesh.id);
-    if(iter != meshes.end()) {
-        // already loaded
-        return;
-    }
+    // auto iter = meshes.find(wMesh->getType());
+    // if (iter != meshes.end())
+    // {
+    //     // already loaded
+    //     return;
+    // }
 
     auto mesh = std::make_shared<RenderMesh>();
     // create buffers/arrays
@@ -91,10 +93,10 @@ void OpenGLRenderer::uploadMesh(MeshComponent cmesh)
     glBindVertexArray(mesh->VAO);
     // load data into vertex buffers
     glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
-    glBufferData(GL_ARRAY_BUFFER, cmesh.vertices.size() * sizeof(Vertex), &cmesh.vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, wMesh->vertices.size() * sizeof(Vertex), &wMesh->vertices[0], GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, cmesh.indices.size() * sizeof(unsigned int), &cmesh.indices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, wMesh->indices.size() * sizeof(unsigned int), &wMesh->indices[0], GL_STATIC_DRAW);
 
     // set the vertex attribute pointers
     // vertex Positions
@@ -121,7 +123,11 @@ void OpenGLRenderer::uploadMesh(MeshComponent cmesh)
     glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
     glBindVertexArray(0);
 
-    meshes[cmesh.id] = mesh;
+    // meshes[wMesh.getType()]
+}
+
+void OpenGLRenderer::renderMesh(WorldMesh* cmesh)
+{
 }
 
 bool OpenGLRenderer::initialized = false;

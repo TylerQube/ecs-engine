@@ -1,5 +1,8 @@
 #include "RenderMesh.h"
+#include "Renderer/Renderer.h"
 #include <cassert>
+#include <unordered_map>
+#include <memory>
 
 struct GLFWwindow;
 
@@ -16,10 +19,13 @@ private:
 
     static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-    void uploadMesh(MeshComponent cmesh);
+    void uploadMesh(WorldMesh* cmesh);
+
 public:
-    OpenGLRenderer(char *title, unsigned int width, unsigned int height);
+    OpenGLRenderer(const char *title, unsigned int width, unsigned int height);
     GLFWwindow* get_window();
+
+    void renderMesh(WorldMesh* mesh) override;
 
     void run();
 };
