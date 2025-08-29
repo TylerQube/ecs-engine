@@ -21,11 +21,18 @@ private:
 
     void uploadMesh(WorldMesh* cmesh);
 
+    void useShader(unsigned int shaderId);
+
 public:
     OpenGLRenderer(const char *title, unsigned int width, unsigned int height);
     GLFWwindow* get_window();
 
+    unsigned int createShader(const char* vertexPath, const char* fragmentPath);
     void renderMesh(WorldMesh* mesh) override;
+
+    void setViewMatrix(glm::mat4 view);
+    void setProjectionMatrix(glm::mat4 projection);
+    void setModelMatrix(glm::mat4 model);
 
     void run();
 };

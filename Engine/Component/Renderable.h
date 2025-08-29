@@ -8,6 +8,8 @@
 
 #define MAX_BONE_INFLUENCE 4
 
+using MeshId = unsigned int;
+
 struct Vertex
 {
     glm::vec3 Position;
@@ -30,12 +32,14 @@ struct Texture
 
 struct WorldMesh
 {
+    unsigned int shaderId;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
 };
 
-struct CRenderable
+struct Renderable
 {
-    std::vector<WorldMesh> meshes;
+    std::vector<unsigned int> meshIds;
+    std::vector<unsigned int> shaderIds;
 };

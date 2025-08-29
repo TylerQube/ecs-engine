@@ -1,18 +1,34 @@
 #include "Renderer/Renderer.h"
-#include "Entity/EntityManager.h"
+#include "Coordinator.hpp"
+#include <Component/Transform.h>
 
 class Engine
 {
-    std::shared_ptr<Renderer> renderer;
-    // input manager, etc.
-
-    std::shared_ptr<EntityManager> entityManager;
-    std::shared_ptr<ComponentManager> componentManager;
-    std::shared_ptr<SystemManager> systemManager;
-
     int currentFrame = 0;
     bool running = true;
     bool paused = false;
 
-    void init();
+    void init()
+    {
+        renderer = std::make_unique<Renderer>();
+
+        coordinator = std::make_unique<Coordinator>();
+        coordinator->init();
+
+        setup();
+    }
+
+    void setup()
+    {
+        coordinator->registerComponent<Transform>();
+        coordinator->registerComponent<Renderable>();
+    }
+
+    void tick()
+    {
+    }
+
+private:
+    std::shared_ptr<Renderer> renderer;
+    std::shared_ptr<Coordinator> coordinator;
 };

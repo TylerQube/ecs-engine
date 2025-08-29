@@ -8,7 +8,7 @@ class IComponentArray
 template <typename T>
 class ComponentArray : IComponentArray
 {
-    void addComponent(std::shared_ptr<Entity> entity, T component) {
+    void addComponent(Entity entity, T component) {
         assert(entityToIndexMap.find(entity) == entityToIndexMap.end() && "Entity may only hold one of each component type");
 
         components[size] = component;
@@ -16,7 +16,7 @@ class ComponentArray : IComponentArray
         size++;
     }
 
-    void removeComponent(std::shared_ptr<Entity> entity) {
+    void removeComponent(Entity entity) {
         assert(entityToIndexMap.find(entity) != entityToIndexMap.end() && "Cannot remove nonexistent component from entity");
 
         auto index = entityToIndexMap[entity];
@@ -30,9 +30,15 @@ class ComponentArray : IComponentArray
         size--;
     }
 
+    T& getComponent(Entity entity) {
+        assert(entityToIndexMap.find(entity) != entityToIndexMap.end() && "Component not found");
+
+        return components[entityToIndexMap[entity]]
+    }
+
 
 private:
     std::array<T, MAX_ENTITIES> components;
-    std::map<std::shared_ptr<Entity>, unsigned int> entityToIndexMap;
+    std::map<Entity, unsigned int> entityToIndexMap;
     unsigned int size = 0;
 };

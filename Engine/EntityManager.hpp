@@ -1,31 +1,48 @@
 #pragma once
 
 #include <vector>
-#include <map>
-#include <memory>
-#include "Entity.h"
-
-#define MAX_ENTITIES 10000
-
-typedef std::vector<std::shared_ptr<Entity>> EntityVector;
-typedef std::map<std::string, EntityVector> EntityMap;
+#include <queue>
+#include "Types.hpp"
+#include <assert.h>
 
 class EntityManager
 {
-    EntityVector entities;
-    EntityMap entityMap;
-    size_t totalEntities = 0;
-
 public:
-    void addEntity();
-    std::shared_ptr<Entity> addEntity(const std::string &tag)
+    EntityManager() {
+        for(Entity e = 0; e < MAX_ENTITIES; ++e) {
+            availableEntities.push(e);
+        }
+        livingEntityCount = 0;
+    }
+
+    Entity createEntity(const std::string &tag)
     {
-        auto e = std::make_shared<Entity>(tag, totalEntities++);
-        entities.push_back(e);
-        entityMap[tag].push_back(e);
-        return e;
+        assert(livingEntityCount < MAX_ENTITIES && "Maximum entity count reached");
+        Entity id = availableEntities.front();
+        availableEntities.pop();
+        livingEntityCount++;
+        return id;
     };
 
-    EntityVector &getEntities();
-    EntityVector &getEntities(const std::string &tag);
+    void destroyEntity(Entity entity) {
+        assert(entity < MAX_ENTITIES && "Invalid entity id");
+
+        signatures[entity].reset();
+        availableEntities.push(entity);
+        livingEntityCount--;
+    }
+
+    void setSignature(Entity entity, Signature signature) {
+        signatures[entity] = signature;
+    }
+
+    Signature getSignature(Entity entity) {
+        return signatures[entity];
+    }
+
+
+private:
+    std::queue<Entity> availableEntities{};
+    std::array<Signature, MAX_COMPONENTS> signatures{};
+    uint32_t livingEntityCount;
 };
