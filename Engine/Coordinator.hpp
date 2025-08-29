@@ -13,7 +13,12 @@ public:
         componentManager = std::make_unique<ComponentManager>();
         systemManager = std::make_unique<SystemManager>();
 
-        renderer = std::make_unique<OpenGLRenderer>();
+        renderer = std::make_unique<OpenGLRenderer>("Hello Engine!", 800, 600);
+    }
+
+    template <typename T>
+    std::shared_ptr<T> registerSystem() {
+        return systemManager->registerSystem<T>();
     }
 
     template <typename T>
@@ -35,6 +40,16 @@ public:
     template <typename T>
     T& getComponent(Entity entity) {
         return componentManager->getComponent<T>(entity);
+    }
+
+    template <typename T>
+    int getComponentId() {
+        return componentManager->getComponentId<T>();
+    }
+
+    template <typename T>
+    void setSignature(std::bitset<MAX_COMPONENTS> signature) {
+        systemManager->setSignature<T>(signature);
     }
 
     void uploadMesh(WorldMesh *wMesh) {

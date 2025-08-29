@@ -46,9 +46,9 @@ public:
     }
 
     template <typename T>
-    int getComponentId(T component)
+    int getComponentId()
     {
-        const char *typeName = typeid(component).name();
+        const char *typeName = typeid(T).name();
         if (componentIds.find(typeName) == componentIds.end())
             return -1;
 

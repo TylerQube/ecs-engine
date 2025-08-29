@@ -12,7 +12,7 @@ private:
     GLFWwindow *window;
     static bool initialized;
 
-    std::unordered_map<unsigned int, std::shared_ptr<RenderMesh>> meshes;
+    std::unordered_map<std::string, std::shared_ptr<RenderMesh>> meshes;
 
     void init();
     void destroy();

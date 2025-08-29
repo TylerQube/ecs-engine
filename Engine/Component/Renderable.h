@@ -36,10 +36,11 @@ struct WorldMesh
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
+
+    std::string name;
 };
 
 struct Renderable
 {
-    std::vector<unsigned int> meshIds;
-    std::vector<unsigned int> shaderIds;
+    std::vector<WorldMesh> meshes;
 };

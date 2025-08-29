@@ -138,11 +138,15 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
     glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
     glBindVertexArray(0);
 
-    meshes[wMesh->getType()]
+    meshes[wMesh->name] = mesh;
 }
 
 void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
 {
+    auto iter = meshes.find(cmesh->name);
+    assert(iter != meshes.end() && "Mesh not found, did you upload it?");
+    auto mesh = iter->second;
+
     // bind appropriate textures
     unsigned int diffuseNr = 1;
     unsigned int specularNr = 1;
@@ -170,8 +174,8 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     }
 
     // draw mesh
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(mesh->VAO);
+    glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(cmesh->indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
     // always good practice to set everything back to defaults once configured.

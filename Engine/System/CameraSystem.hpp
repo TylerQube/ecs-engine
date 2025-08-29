@@ -1,14 +1,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "Engine.hpp"
+#include "Engine/Engine.hpp"
 #include "System.h"
 
 #include "Component/Camera.h"
 
 class CameraSystem : public System
 {
-    Coordinator* coordinator;
-    void init(Coordinator& c)
+public:
+    Coordinator *coordinator;
+    void init(Coordinator &c)
     {
         this->coordinator = &c;
     }
@@ -18,10 +19,12 @@ class CameraSystem : public System
         return glm::lookAt(position, position + front, up);
     }
 
-    void update() {
-        for (Entity entity : entities) {
-            auto& camera = this->coordinator->getComponent<Camera>(entity);
-            auto& transform = this->coordinator->getComponent<Transform>(entity);
+    void update()
+    {
+        for (Entity entity : entities)
+        {
+            auto &camera = this->coordinator->getComponent<Camera>(entity);
+            auto &transform = this->coordinator->getComponent<Transform>(entity);
 
             glm::mat4 view = getViewMatrix(transform.position, camera.front, camera.up);
             coordinator->setViewMatrix(view);

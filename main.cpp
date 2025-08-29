@@ -1,13 +1,14 @@
 #include <iostream>
-#include "Renderer/OpenGLRenderer/OpenGLRenderer.h"
+#include "Engine/Engine.hpp"
 
 int
 main ()
 {
-  std::cout << "Hello, CMake!" << std::endl;
+  std::cout << "Hello, project!" << std::endl;
 
-  OpenGLRenderer renderer("Hello Window!", 800, 400);
-  std::cout << "Starting render loop" << std::endl;
-  renderer.run();
+  auto engine = std::make_unique<Engine>();
+  engine->init();
+  engine->run();
+
   return 0;
 }
