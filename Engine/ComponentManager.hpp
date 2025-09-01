@@ -15,7 +15,7 @@ public:
         componentIds.insert({typeName, nextComponentId});
         nextComponentId++;
 
-        componentArrays.insert({typeName, ComponentArray<T>()});
+        componentArrays.insert({typeName, std::make_shared<ComponentArray<T>>()});
     }
 
     template <typename T>
@@ -41,8 +41,8 @@ public:
     }
 
     template <typename T>
-    T& getComponent(std::shared_ptr<Entity> entity) {
-        getComponentArray<T>()->getComponent(entity);
+    T& getComponent(Entity entity) {
+        return getComponentArray<T>()->getComponent(entity);
     }
 
     template <typename T>
@@ -52,7 +52,7 @@ public:
         if (componentIds.find(typeName) == componentIds.end())
             return -1;
 
-        return componentTypes[typeName];
+        return componentIds[typeName];
     }
 
 private:
@@ -63,11 +63,11 @@ private:
     template <typename T>
     std::shared_ptr<ComponentArray<T>> getComponentArray()
     {
-        assert(getComponentId(component) && "Component type not registered!");
+        assert(getComponentId<T>() && "Component type not registered!");
 
         const char *name = typeid(T).name();
 
-        unsigned int id = getComponentId(component);
+        unsigned int id = getComponentId<T>();
 
         return std::static_pointer_cast<ComponentArray<T>>(componentArrays[name]);
     }

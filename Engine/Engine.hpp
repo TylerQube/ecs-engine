@@ -8,6 +8,7 @@
 #include "System/CameraSystem.hpp"
 
 #include "Coordinator.hpp"
+#include "Types.hpp"
 
 class Engine
 {
@@ -47,6 +48,7 @@ public:
 
         while (true)
         {
+            std::cout << "tick" << std::endl; 
             renderSystem->update();
             cameraSystem->update();
         }

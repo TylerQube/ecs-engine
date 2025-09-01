@@ -1,8 +1,10 @@
+#pragma once
+
 #include "EntityManager.hpp"
 #include "ComponentManager.hpp"
 #include "SystemManager.hpp"
-#include <Renderer.h>
-#include<OpenGLRenderer.h>
+#include <Renderer/Renderer.h>
+#include<Renderer/OpenGLRenderer/OpenGLRenderer.h>
 
 class Coordinator
 {
@@ -14,6 +16,7 @@ public:
         systemManager = std::make_unique<SystemManager>();
 
         renderer = std::make_unique<OpenGLRenderer>("Hello Engine!", 800, 600);
+        renderer->run();
     }
 
     template <typename T>

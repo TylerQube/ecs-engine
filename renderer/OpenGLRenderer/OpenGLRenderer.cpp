@@ -182,4 +182,22 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     glActiveTexture(GL_TEXTURE0);
 }
 
+void OpenGLRenderer::setViewMatrix(glm::mat4 view)
+{
+    unsigned int viewLoc = glGetUniformLocation(0, "view");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+}
+
+void OpenGLRenderer::setProjectionMatrix(glm::mat4 projection)
+{
+    unsigned int projLoc = glGetUniformLocation(0, "projection");
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+}
+
+void OpenGLRenderer::setModelMatrix(glm::mat4 model)
+{
+    unsigned int modelLoc = glGetUniformLocation(0, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+}
+
 bool OpenGLRenderer::initialized = false;

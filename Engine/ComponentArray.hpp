@@ -1,14 +1,17 @@
 #include "EntityManager.hpp"
 #include <cassert>
+#include <map>
 
 class IComponentArray
 {
 };
 
 template <typename T>
-class ComponentArray : IComponentArray
+class ComponentArray : public IComponentArray
 {
-    void addComponent(Entity entity, T component) {
+public:
+    void addComponent(Entity entity, T component)
+    {
         assert(entityToIndexMap.find(entity) == entityToIndexMap.end() && "Entity may only hold one of each component type");
 
         components[size] = component;
@@ -16,13 +19,14 @@ class ComponentArray : IComponentArray
         size++;
     }
 
-    void removeComponent(Entity entity) {
+    void removeComponent(Entity entity)
+    {
         assert(entityToIndexMap.find(entity) != entityToIndexMap.end() && "Cannot remove nonexistent component from entity");
 
         auto index = entityToIndexMap[entity];
 
         // move last component to removed index
-        components[index] = components[size-1];
+        components[index] = components[size - 1];
         // update index map
         entityToIndexMap[components[index]] = index;
         entityToIndexMap.erase(entity);
@@ -30,12 +34,12 @@ class ComponentArray : IComponentArray
         size--;
     }
 
-    T& getComponent(Entity entity) {
+    T &getComponent(Entity entity)
+    {
         assert(entityToIndexMap.find(entity) != entityToIndexMap.end() && "Component not found");
 
-        return components[entityToIndexMap[entity]]
+        return components[entityToIndexMap[entity]];
     }
-
 
 private:
     std::array<T, MAX_ENTITIES> components;

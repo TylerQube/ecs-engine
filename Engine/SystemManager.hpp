@@ -1,3 +1,5 @@
+#pragma once
+
 #include <map>
 #include <vector>
 #include <typeinfo>
@@ -8,8 +10,9 @@
 
 class SystemManager
 {
+public:
     template <typename T>
-    std::shared_ptr<System> registerSystem(T newSystem)
+    std::shared_ptr<T> registerSystem()
     {
         const char *typeName = typeid(T).name();
 
@@ -24,7 +27,7 @@ class SystemManager
     {
         const char *typeName = typeid(T).name();
 
-        assert(systems.find(typeName) != system.end() && "Register system before using");
+        assert(systems.find(typeName) != systems.end() && "Register system before using");
 
         signatures.insert({typeName, signature});
     }
@@ -58,18 +61,7 @@ class SystemManager
         }
     }
 
-    template <typename T>
-    int getComponentId(T component)
-    {
-        const char *typeName = typeid(component).name();
-        if (componentIds.find(typeName) == componentIds.end())
-            return -1;
-
-        return componentTypes[typeName];
-    }
-
 private:
-    unsigned int nextComponentId = 0;
     std::map<const char *, std::shared_ptr<System>> systems;
     std::map<const char *, Signature> signatures;
 };

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Engine/Component/Renderable.h"
 
 struct RenderMesh {

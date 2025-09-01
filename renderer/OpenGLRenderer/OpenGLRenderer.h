@@ -1,3 +1,5 @@
+#pragma once
+
 #include "RenderMesh.h"
 #include "Renderer/Renderer.h"
 #include <cassert>
@@ -19,7 +21,7 @@ private:
 
     static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-    void uploadMesh(WorldMesh* cmesh);
+    void uploadMesh(WorldMesh* cmesh) override;
 
     void useShader(unsigned int shaderId);
 
@@ -34,5 +36,5 @@ public:
     void setProjectionMatrix(glm::mat4 projection);
     void setModelMatrix(glm::mat4 model);
 
-    void run();
+    void run() override;
 };

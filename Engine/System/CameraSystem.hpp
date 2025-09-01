@@ -3,7 +3,7 @@
 #include "Engine/Engine.hpp"
 #include "System.h"
 
-#include "Component/Camera.h"
+#include "Engine/Component/Camera.h"
 
 class CameraSystem : public System
 {
