@@ -21,9 +21,9 @@ public:
     template <typename T>
     void addComponent(Entity entity, T component)
     {
-        assert(getComponentId(component) && "Component type not registered!");
+        assert(componentRegistered<T>() && "Component type not registered!");
 
-        unsigned int id = getComponentId(component);
+        unsigned int id = getComponentId<T>();
 
         std::shared_ptr<ComponentArray<T>> componentArr = getComponentArray<T>();
         componentArr->addComponent(entity, component);
@@ -32,9 +32,9 @@ public:
     template <typename T>
     void removeComponent(std::shared_ptr<Entity> entity, T component)
     {
-        assert(getComponentId(component) && "Component type not registered!");
+        assert(componentRegistered<T>() && "Component type not registered!");
 
-        unsigned int id = getComponentId(component);
+        unsigned int id = getComponentId<T>();
 
         std::shared_ptr<ComponentArray<T>> componentArr = getComponentArray<T>();
         componentArr->removeComponent(entity);
@@ -55,6 +55,12 @@ public:
         return componentIds[typeName];
     }
 
+    template <typename T>
+    bool componentRegistered()
+    {
+        return getComponentId<T>() != -1;
+    }
+
 private:
     unsigned int nextComponentId = 0;
     std::map<const char *, unsigned int> componentIds;
@@ -63,7 +69,7 @@ private:
     template <typename T>
     std::shared_ptr<ComponentArray<T>> getComponentArray()
     {
-        assert(getComponentId<T>() && "Component type not registered!");
+        assert(componentRegistered<T>() && "Component type not registered!");
 
         const char *name = typeid(T).name();
 

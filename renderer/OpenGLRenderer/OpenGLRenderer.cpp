@@ -65,29 +65,32 @@ GLFWwindow *OpenGLRenderer::get_window()
     return window;
 }
 
-void OpenGLRenderer::run()
+int OpenGLRenderer::render()
 {
-    std::cout << "Running render loop" << std::endl;
-    while (!glfwWindowShouldClose(window))
-    {
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+    if(glfwWindowShouldClose(window)) {
+        destroy();
+        return -1;
     }
-    destroy();
+    std::cout << "Rendering" << std::endl;
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+
+    return 0;
 }
 
-unsigned int loadShader(const char *vertexPath, const char *fragmentPath)
+unsigned int OpenGLRenderer::loadShader(const char *vertexPath, const char *fragmentPath)
 {
     auto shader = Shader(vertexPath, fragmentPath);
     return shader.ID;
 }
 
-void useShader(unsigned int shaderId)
+void OpenGLRenderer::useShader(unsigned int shaderId)
 {
     glUseProgram(shaderId);
+    activeShader = shaderId;
 }
 
 void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
@@ -184,19 +187,19 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
 
 void OpenGLRenderer::setViewMatrix(glm::mat4 view)
 {
-    unsigned int viewLoc = glGetUniformLocation(0, "view");
+    unsigned int viewLoc = glGetUniformLocation(activeShader, "view");
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
 }
 
 void OpenGLRenderer::setProjectionMatrix(glm::mat4 projection)
 {
-    unsigned int projLoc = glGetUniformLocation(0, "projection");
+    unsigned int projLoc = glGetUniformLocation(activeShader, "projection");
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
 }
 
 void OpenGLRenderer::setModelMatrix(glm::mat4 model)
 {
-    unsigned int modelLoc = glGetUniformLocation(0, "model");
+    unsigned int modelLoc = glGetUniformLocation(activeShader, "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
 }
 

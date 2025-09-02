@@ -16,12 +16,15 @@ public:
         systemManager = std::make_unique<SystemManager>();
 
         renderer = std::make_unique<OpenGLRenderer>("Hello Engine!", 800, 600);
-        renderer->run();
     }
 
     template <typename T>
     std::shared_ptr<T> registerSystem() {
         return systemManager->registerSystem<T>();
+    }
+
+    Entity createEntity(const std::string &tag) {
+        return entityManager->createEntity(tag);
     }
 
     template <typename T>
@@ -35,7 +38,7 @@ public:
         componentManager->addComponent(entity, component);
 
         auto signature = entityManager->getSignature(entity);
-        signature.set(componentManager->getComponentId(component), true);
+        signature.set(componentManager->getComponentId<T>(), true);
 
         systemManager->entitySignatureChanged(entity, signature);
     }
@@ -53,6 +56,10 @@ public:
     template <typename T>
     void setSignature(std::bitset<MAX_COMPONENTS> signature) {
         systemManager->setSignature<T>(signature);
+    }
+
+    unsigned int loadShader(const char* vertexPath, const char* fragmentPath) {
+        return renderer->loadShader(vertexPath, fragmentPath);
     }
 
     void uploadMesh(WorldMesh *wMesh) {
@@ -74,6 +81,10 @@ public:
     }
     float getAspectRatio() {
         return renderer->getAspectRatio();
+    }
+
+    int render() {
+        return renderer->render();
     }
 
 private:
