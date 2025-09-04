@@ -49,9 +49,8 @@ OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned i
     WIDTH = width;
     HEIGHT = height;
 
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
     glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     int load = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
     if (!load)
@@ -65,20 +64,22 @@ GLFWwindow *OpenGLRenderer::get_window()
     return window;
 }
 
-int OpenGLRenderer::render()
+int OpenGLRenderer::beginFrame()
 {
-    if(glfwWindowShouldClose(window)) {
+    if (glfwWindowShouldClose(window)) {
         destroy();
         return -1;
     }
-    std::cout << "Rendering" << std::endl;
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     return 0;
+}
+
+void OpenGLRenderer::endFrame()
+{
+    glfwSwapBuffers(window);
+    glfwPollEvents();
 }
 
 unsigned int OpenGLRenderer::loadShader(const char *vertexPath, const char *fragmentPath)
@@ -118,34 +119,35 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
 
     // set the vertex attribute pointers
     // vertex Positions
-    glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+    glEnableVertexAttribArray(0);
     // vertex normals
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Normal));
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Normal));
     // vertex texture coords
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, TexCoords));
+    // glEnableVertexAttribArray(2);
+    // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, TexCoords));
     // vertex tangent
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Tangent));
+    // glEnableVertexAttribArray(3);
+    // glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Tangent));
     // vertex bitangent
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Bitangent));
+    // glEnableVertexAttribArray(4);
+    // glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Bitangent));
     // ids
-    glEnableVertexAttribArray(5);
-    glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
+    // glEnableVertexAttribArray(5);
+    // glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
 
     // weights
-    glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
-    glBindVertexArray(0);
+    // glEnableVertexAttribArray(6);
+    // glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
+    // glBindVertexArray(0);
 
     meshes[wMesh->name] = mesh;
 }
 
 void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
 {
+    uploadMesh(cmesh);
     auto iter = meshes.find(cmesh->name);
     assert(iter != meshes.end() && "Mesh not found, did you upload it?");
     auto mesh = iter->second;
@@ -155,34 +157,38 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     unsigned int specularNr = 1;
     unsigned int normalNr = 1;
     unsigned int heightNr = 1;
-    for (unsigned int i = 0; i < cmesh->textures.size(); i++)
-    {
-        glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
-        // retrieve texture number (the N in diffuse_textureN)
-        std::string number;
-        std::string name = cmesh->textures[i].type;
-        if (name == "texture_diffuse")
-            number = std::to_string(diffuseNr++);
-        else if (name == "texture_specular")
-            number = std::to_string(specularNr++); // transfer unsigned int to string
-        else if (name == "texture_normal")
-            number = std::to_string(normalNr++); // transfer unsigned int to string
-        else if (name == "texture_height")
-            number = std::to_string(heightNr++); // transfer unsigned int to string
+    // for (unsigned int i = 0; i < cmesh->textures.size(); i++)
+    // {
+    //     glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
+    //     // retrieve texture number (the N in diffuse_textureN)
+    //     std::string number;
+    //     std::string name = cmesh->textures[i].type;
+    //     if (name == "texture_diffuse")
+    //         number = std::to_string(diffuseNr++);
+    //     else if (name == "texture_specular")
+    //         number = std::to_string(specularNr++); // transfer unsigned int to string
+    //     else if (name == "texture_normal")
+    //         number = std::to_string(normalNr++); // transfer unsigned int to string
+    //     else if (name == "texture_height")
+    //         number = std::to_string(heightNr++); // transfer unsigned int to string
 
-        // now set the sampler to the correct texture unit
-        glUniform1i(glGetUniformLocation(cmesh->shaderId, (name + number).c_str()), i);
-        // and finally bind the texture
-        glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
-    }
+    //     // now set the sampler to the correct texture unit
+    //     glUniform1i(glGetUniformLocation(cmesh->shaderId, (name + number).c_str()), i);
+    //     // and finally bind the texture
+    //     // glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
+    // }
+
+    std::cout << "Using shader ID: " << cmesh->shaderId << std::endl;
+    useShader(cmesh->shaderId);
 
     // draw mesh
+    std::cout << "Drawing mesh: " << cmesh->name << " with " << cmesh->indices.size() << " indices." << std::endl;
     glBindVertexArray(mesh->VAO);
-    glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(cmesh->indices.size()), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
     // always good practice to set everything back to defaults once configured.
-    glActiveTexture(GL_TEXTURE0);
+    // glActiveTexture(GL_TEXTURE0);
 }
 
 void OpenGLRenderer::setViewMatrix(glm::mat4 view)

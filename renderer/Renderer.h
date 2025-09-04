@@ -15,7 +15,8 @@ public:
 
     float getAspectRatio() { return (float)WIDTH / (float)HEIGHT; }
 
-    virtual int render() = 0;
+    virtual int beginFrame() = 0;
+    virtual void endFrame() = 0;
 
     virtual ~Renderer() = default;
 

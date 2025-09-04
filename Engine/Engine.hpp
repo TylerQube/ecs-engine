@@ -40,20 +40,21 @@ public:
         renderSystem->init(*coordinator);
 
         auto cameraSystem = coordinator->registerSystem<CameraSystem>();
+        signature.reset();
         signature.set(coordinator->getComponentId<Transform>());
         signature.set(coordinator->getComponentId<Camera>());
-        coordinator->setSignature<RenderSystem>(signature);
+        coordinator->setSignature<CameraSystem>(signature);
 
         cameraSystem->init(*coordinator);
 
         Entity player = coordinator->createEntity("player");
-        auto playerTransform = Transform{glm::vec3(0.0f, 0.0f, 3.0f),
+        auto playerTransform = Transform{glm::vec3(-5.0f, 0.5f, 0.0f),
                                          glm::vec3(0.0f),
                                          glm::vec3(0.0f),
                                          glm::vec3(1.0f)};
         coordinator->addComponent(player, playerTransform);
-        auto playerCamera = Camera{glm::vec3(0.0f, 0.0f, -1.0f),
-                                   glm::vec3(0.0f, 1.0f, 0.0f),
+        auto playerCamera = Camera{glm::vec3(0.0f, 0.0f, 1.0f),
+                                   glm::vec3(0.0f, 0.0f, 0.0f),
                                    0.1f,
                                    45.0f};
         coordinator->addComponent(player, playerCamera);
@@ -65,29 +66,27 @@ public:
                                        glm::vec3(1.0f)};
         coordinator->addComponent(wall, wallTransform);
         Renderable wallRenderable;
-        wallRenderable.meshes.push_back(
-            {.shaderId = coordinator->loadShader("shaders/vertex_shader.glsl", "shaders/fragment_shader.glsl"),
-             .vertices = {
-                 // positions          // normals           // texture coords
-                 {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {-1, -1, -1, -1}, {0.0f, 0.0f, 0.0f, 0.0f}},
-                 {{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {-1, -1, -1, -1}, {0.0f, 0.0f, 0.0f, 0.0f}},
-                 {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {-1, -1, -1, -1}, {0.0f, 0.0f, 0.0f, 0.0f}},
-                 {{-0.5f, 0.5f, 0.2f}, {1.2f, 2.3f, 3.4f}, {2.2f, 3.3f}, {1.2f, 2.3f, 3.4f}, {4.5f, 5.6f, 6.7f}, {-1, -1, -1, -1}, {0.0f, 0.0f, 0.0f, 0.0f}},
-             },
-             .indices = {0, 1, 2, 2, 3, 0},
-             .textures = {},
-             .name = "wallMesh"});
+        WorldMesh mesh;
+        mesh.shaderId = coordinator->loadShader("shaders/vertex_shader.glsl", "shaders/fragment_shader.glsl");
+        mesh.vertices = {
+            {{-0.5f, 0.0f, 0.5f}},
+            {{0.5f, 1.0f, 0.5f}},
+            {{0.0f, 0.0f, 0.0f}},
+        };
+        mesh.indices = {0, 1, 2};
+        mesh.name = "wallMesh";
+        wallRenderable.meshes.push_back(mesh);
+
         coordinator->addComponent(wall, wallRenderable);
 
         while (true)
         {
-            std::cout << "tick" << std::endl;
+            int frameResult = coordinator->startFrame();
+            if(frameResult == -1) break;
             renderSystem->update();
-            cameraSystem->update();
+            coordinator->endFrame();
 
-            int render = coordinator->render();
-            if (render == -1)
-                break;
+            cameraSystem->update();
         }
     }
 };

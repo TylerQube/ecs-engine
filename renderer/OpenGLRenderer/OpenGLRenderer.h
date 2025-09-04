@@ -36,5 +36,6 @@ public:
     void setProjectionMatrix(glm::mat4 projection) override;
     void setModelMatrix(glm::mat4 model) override;
 
-    int render() override;
+    int beginFrame() override;
+    void endFrame() override;
 };

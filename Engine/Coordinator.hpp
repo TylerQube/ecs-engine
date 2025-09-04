@@ -39,6 +39,7 @@ public:
 
         auto signature = entityManager->getSignature(entity);
         signature.set(componentManager->getComponentId<T>(), true);
+        entityManager->setSignature(entity, signature);
 
         systemManager->entitySignatureChanged(entity, signature);
     }
@@ -83,10 +84,13 @@ public:
         return renderer->getAspectRatio();
     }
 
-    int render() {
-        return renderer->render();
+    int startFrame() {
+        return renderer->beginFrame();
     }
 
+    void endFrame() {
+        renderer->endFrame();
+    }
 private:
     // input manager, etc.
 

@@ -16,6 +16,11 @@ public:
         for (Entity entity : entities)
         {
             auto renderable = coordinator->getComponent<Renderable>(entity);
+        }
+
+        for (Entity entity : entities)
+        {
+            auto renderable = coordinator->getComponent<Renderable>(entity);
             auto transform = coordinator->getComponent<Transform>(entity);
             for (auto &mesh : renderable.meshes)
             {
