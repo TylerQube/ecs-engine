@@ -13,7 +13,7 @@
 class Engine
 {
 private:
-    int currentFrame = 0;
+    float lastFrame = 0;
     bool running = true;
     bool paused = false;
     std::shared_ptr<Coordinator> coordinator;
@@ -45,6 +45,8 @@ public:
         signature.set(coordinator->getComponentId<Camera>());
         coordinator->setSignature<CameraSystem>(signature);
 
+        coordinator->subscribeSystemToInput(cameraSystem);
+
         cameraSystem->init(*coordinator);
 
         Entity player = coordinator->createEntity("player");
@@ -54,7 +56,7 @@ public:
                                          glm::vec3(1.0f)};
         coordinator->addComponent(player, playerTransform);
         auto playerCamera = Camera{glm::vec3(0.0f, 0.0f, 1.0f),
-                                   glm::vec3(0.0f, 0.0f, 0.0f),
+                                   glm::vec3(0.0f, 1.0f, 0.0f),
                                    0.1f,
                                    45.0f};
         coordinator->addComponent(player, playerCamera);
@@ -81,12 +83,18 @@ public:
 
         while (true)
         {
-            int frameResult = coordinator->startFrame();
-            if(frameResult == -1) break;
-            renderSystem->update();
+
+            float currentFrame = coordinator->getTime();
+            float deltaTime = currentFrame - lastFrame;
+            if(coordinator->startFrame() == -1) break;
+
+            cameraSystem->update(deltaTime);
+            renderSystem->update(deltaTime);
+
             coordinator->endFrame();
 
-            cameraSystem->update();
+
+            lastFrame = currentFrame;
         }
     }
 };

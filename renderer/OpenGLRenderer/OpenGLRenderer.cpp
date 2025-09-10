@@ -9,6 +9,7 @@
 #include "glfw/glfw3.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
+#include <Engine/Types.hpp>
 
 void OpenGLRenderer::init()
 {
@@ -57,6 +58,9 @@ OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned i
         return;
     glEnable(GL_DEPTH_TEST);
     stbi_set_flip_vertically_on_load(true);
+
+    glfwSetWindowUserPointer(window, this);
+    glfwSetKeyCallback(window, dispatchKeyCallback);
 }
 
 GLFWwindow *OpenGLRenderer::get_window()
@@ -66,7 +70,8 @@ GLFWwindow *OpenGLRenderer::get_window()
 
 int OpenGLRenderer::beginFrame()
 {
-    if (glfwWindowShouldClose(window)) {
+    if (glfwWindowShouldClose(window))
+    {
         destroy();
         return -1;
     }
@@ -80,6 +85,11 @@ void OpenGLRenderer::endFrame()
 {
     glfwSwapBuffers(window);
     glfwPollEvents();
+}
+
+float OpenGLRenderer::getTime()
+{
+    return glfwGetTime();
 }
 
 unsigned int OpenGLRenderer::loadShader(const char *vertexPath, const char *fragmentPath)
@@ -178,11 +188,9 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     //     // glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
     // }
 
-    std::cout << "Using shader ID: " << cmesh->shaderId << std::endl;
     useShader(cmesh->shaderId);
 
     // draw mesh
-    std::cout << "Drawing mesh: " << cmesh->name << " with " << cmesh->indices.size() << " indices." << std::endl;
     glBindVertexArray(mesh->VAO);
     glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
@@ -207,6 +215,67 @@ void OpenGLRenderer::setModelMatrix(glm::mat4 model)
 {
     unsigned int modelLoc = glGetUniformLocation(activeShader, "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+}
+
+void OpenGLRenderer::dispatchKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    auto *renderer = static_cast<OpenGLRenderer *>(glfwGetWindowUserPointer(window));
+    if (renderer)
+        renderer->key_callback(window, key, scancode, action, mods);
+}
+
+KeyCode glfwKeyToEngineKey(int key)
+{
+    switch (key)
+    {
+    case GLFW_KEY_W:
+        return W;
+    case GLFW_KEY_A:
+        return A;
+    case GLFW_KEY_S:
+        return S;
+    case GLFW_KEY_D:
+        return D;
+    case GLFW_KEY_SPACE:
+        return SPACE;
+    case GLFW_KEY_LEFT_SHIFT:
+        return LEFT_SHIFT;
+    case GLFW_KEY_ESCAPE:
+        return ESCAPE;
+    default:
+        return ESCAPE; // Default to ESCAPE for unknown keys
+    }
+}
+
+KeyAction glfwActionToEngineAction(int action)
+{
+    switch (action)
+    {
+    case GLFW_PRESS:
+        return PRESS;
+    case GLFW_RELEASE:
+        return RELEASE;
+    case GLFW_REPEAT:
+        return REPEAT;
+    default:
+        return RELEASE; // Default to RELEASE for unknown actions
+    }
+}
+
+void OpenGLRenderer::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    KeyCode keycode = glfwKeyToEngineKey(key);
+    KeyAction keyaction = glfwActionToEngineAction(action);
+
+    engineKeyCallback(keycode, keyaction);
+}
+
+void OpenGLRenderer::registerKeyCallback(std::function<void(KeyCode, KeyAction)> callback)
+{
+    engineKeyCallback = callback;
 }
 
 bool OpenGLRenderer::initialized = false;

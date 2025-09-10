@@ -15,6 +15,8 @@ private:
     static bool initialized;
     unsigned int activeShader = 0;
 
+    std::function<void(KeyCode, KeyAction)> engineKeyCallback = nullptr;
+
     std::unordered_map<std::string, std::shared_ptr<RenderMesh>> meshes;
 
     void init();
@@ -24,6 +26,10 @@ private:
 
     void uploadMesh(WorldMesh* cmesh) override;
     void useShader(unsigned int shaderId);
+
+    void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+    static void dispatchKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 public:
     OpenGLRenderer(const char *title, unsigned int width, unsigned int height);
@@ -38,4 +44,8 @@ public:
 
     int beginFrame() override;
     void endFrame() override;
+
+    float getTime() override;
+
+    void registerKeyCallback(std::function<void(KeyCode, KeyAction)> callback) override;
 };

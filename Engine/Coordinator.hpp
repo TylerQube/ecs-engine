@@ -3,8 +3,9 @@
 #include "EntityManager.hpp"
 #include "ComponentManager.hpp"
 #include "SystemManager.hpp"
+#include "InputManager.hpp"
 #include <Renderer/Renderer.h>
-#include<Renderer/OpenGLRenderer/OpenGLRenderer.h>
+#include <Renderer/OpenGLRenderer/OpenGLRenderer.h>
 
 class Coordinator
 {
@@ -15,15 +16,29 @@ public:
         componentManager = std::make_unique<ComponentManager>();
         systemManager = std::make_unique<SystemManager>();
 
+        inputManager = std::make_unique<InputManager>();
+
         renderer = std::make_unique<OpenGLRenderer>("Hello Engine!", 800, 600);
+
+        renderer->registerKeyCallback(
+            [this](KeyCode key, KeyAction action)
+            {
+                inputManager->keyCallback(key, action);
+            });
     }
 
     template <typename T>
-    std::shared_ptr<T> registerSystem() {
+    std::shared_ptr<T> registerSystem()
+    {
         return systemManager->registerSystem<T>();
     }
 
-    Entity createEntity(const std::string &tag) {
+    void subscribeSystemToInput(std::shared_ptr<System> system) {
+        inputManager->subscribe(system);
+    }
+
+    Entity createEntity(const std::string &tag)
+    {
         return entityManager->createEntity(tag);
     }
 
@@ -34,7 +49,8 @@ public:
     }
 
     template <typename T>
-    void addComponent(Entity entity, T component) {
+    void addComponent(Entity entity, T component)
+    {
         componentManager->addComponent(entity, component);
 
         auto signature = entityManager->getSignature(entity);
@@ -45,58 +61,78 @@ public:
     }
 
     template <typename T>
-    T& getComponent(Entity entity) {
+    T &getComponent(Entity entity)
+    {
         return componentManager->getComponent<T>(entity);
     }
 
     template <typename T>
-    int getComponentId() {
+    int getComponentId()
+    {
         return componentManager->getComponentId<T>();
     }
 
     template <typename T>
-    void setSignature(std::bitset<MAX_COMPONENTS> signature) {
+    void setSignature(std::bitset<MAX_COMPONENTS> signature)
+    {
         systemManager->setSignature<T>(signature);
     }
 
-    unsigned int loadShader(const char* vertexPath, const char* fragmentPath) {
+    unsigned int loadShader(const char *vertexPath, const char *fragmentPath)
+    {
         return renderer->loadShader(vertexPath, fragmentPath);
     }
 
-    void uploadMesh(WorldMesh *wMesh) {
+    void uploadMesh(WorldMesh *wMesh)
+    {
         renderer->uploadMesh(wMesh);
     }
 
-    void renderMesh(WorldMesh *wMesh) {
+    void renderMesh(WorldMesh *wMesh)
+    {
         renderer->renderMesh(wMesh);
     }
 
-    void setViewMatrix(glm::mat4 view) {
+    void setViewMatrix(glm::mat4 view)
+    {
         renderer->setViewMatrix(view);
     }
-    void setProjectionMatrix(glm::mat4 projection) {
+    void setProjectionMatrix(glm::mat4 projection)
+    {
         renderer->setProjectionMatrix(projection);
     }
-    void setModelMatrix(glm::mat4 model) {
+    void setModelMatrix(glm::mat4 model)
+    {
         renderer->setModelMatrix(model);
     }
-    float getAspectRatio() {
+    float getAspectRatio()
+    {
         return renderer->getAspectRatio();
     }
 
-    int startFrame() {
+    int startFrame()
+    {
         return renderer->beginFrame();
     }
 
-    void endFrame() {
+    void endFrame()
+    {
         renderer->endFrame();
     }
+
+    float getTime()
+    {
+        return renderer->getTime();
+    }
+
 private:
     // input manager, etc.
 
     std::unique_ptr<EntityManager> entityManager;
     std::unique_ptr<ComponentManager> componentManager;
     std::unique_ptr<SystemManager> systemManager;
+
+    std::unique_ptr<InputManager> inputManager;
 
     std::unique_ptr<Renderer> renderer;
 };

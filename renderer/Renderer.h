@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Component/Renderable.h"
+#include <Engine/Types.hpp>
 
 class Renderer
 {
@@ -18,7 +19,11 @@ public:
     virtual int beginFrame() = 0;
     virtual void endFrame() = 0;
 
+    virtual float getTime() = 0;
+
     virtual ~Renderer() = default;
+
+    virtual void registerKeyCallback(std::function<void(KeyCode, KeyAction)> callback) = 0;
 
 protected:
     int WIDTH;

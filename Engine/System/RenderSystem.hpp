@@ -11,7 +11,7 @@ public:
         this->coordinator = &c;
     }
 
-    void update()
+    void update(float dt)
     {
         for (Entity entity : entities)
         {
@@ -36,4 +36,6 @@ public:
             }
         }
     }
+
+    void onKeyEvent(KeyCode key, KeyAction action) {}
 };
