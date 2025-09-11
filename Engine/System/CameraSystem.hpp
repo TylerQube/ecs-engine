@@ -8,8 +8,12 @@
 class CameraSystem : public System
 {
 private:
-    bool spin = true;
     float moveSpeed = 5.0f;
+    float mouseSensitivity = 0.1f;
+
+    bool firstMouse = true;
+    double xpos = 0;
+    double ypos = 0;
 
 public:
     Coordinator *coordinator;
@@ -32,27 +36,44 @@ public:
 
             transform.position += transform.velocity * dt;
 
-            if (spin)
-                transform.rotation.y += dt * 20.0f;
-
-            std::cout << "Camera position: " << transform.position.x << ", " << transform.position.y << ", " << transform.position.z << std::endl;
-
-            glm::mat4 rotMatrix = glm::mat4(1.0f);
-            rotMatrix = glm::rotate(rotMatrix, glm::radians(transform.rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-            rotMatrix = glm::rotate(rotMatrix, glm::radians(transform.rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-            rotMatrix = glm::rotate(rotMatrix, glm::radians(transform.rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-            glm::vec3 rotatedFront = glm::vec3(rotMatrix * glm::vec4(camera.front, 1.0f));
-            glm::vec3 rotatedUp = glm::vec3(rotMatrix * glm::vec4(camera.up, 1.0f));
-
-            camera.front = rotatedFront;
-            camera.up = rotatedUp;
-            transform.rotation = glm::vec3(0.0f);
-
-            glm::mat4 view = getViewMatrix(transform.position, rotatedFront, rotatedUp);
+            glm::mat4 view = glm::lookAt(transform.position, transform.position + camera.front, camera.up);
             coordinator->setViewMatrix(view);
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), coordinator->getAspectRatio(), 0.1f, 100.0f);
             coordinator->setProjectionMatrix(projection);
+        }
+    }
+
+    void updateCamVectors(Camera &camera, Transform &transform)
+    {
+        // calculate the new Front vector
+        auto rot = transform.rotation;
+        glm::vec3 dir;
+        dir.x = cos(glm::radians(rot.yaw)) * cos(glm::radians(rot.pitch));
+        dir.y = sin(glm::radians(rot.pitch));
+        dir.z = sin(glm::radians(rot.yaw)) * cos(glm::radians(rot.pitch));
+
+        camera.front = glm::normalize(dir);
+        glm::vec3 right = glm::normalize(glm::cross(camera.front, glm::vec3(0.0f, 1.0f, 0.0f)));
+        camera.up = glm::normalize(glm::cross(camera.front, right));
+    }
+
+    void processMouse(double dx, double dy)
+    {
+        for (Entity entity : entities)
+        {
+            auto &transform = this->coordinator->getComponent<Transform>(entity);
+            auto &camera = this->coordinator->getComponent<Camera>(entity);
+
+            transform.rotation.yaw -= dx * mouseSensitivity;
+            transform.rotation.pitch -= dy * mouseSensitivity;
+
+            if (transform.rotation.pitch > 89.0f)
+                transform.rotation.pitch = 89.0f;
+            if (transform.rotation.pitch < -89.0f)
+                transform.rotation.pitch = -89.0f;
+
+            updateCamVectors(camera, transform);
         }
     }
 
@@ -62,39 +83,70 @@ public:
         {
             auto &camera = this->coordinator->getComponent<Camera>(entity);
             auto &transform = this->coordinator->getComponent<Transform>(entity);
+
+            auto front = camera.front;
+            auto right = glm::cross(camera.front, camera.up);
+
             if (action == RELEASE)
             {
                 transform.velocity = glm::vec3(0.0f);
                 continue;
             }
+
             switch (key)
             {
             case W:
             {
-                transform.velocity = glm::normalize(camera.front) * moveSpeed;
+                transform.velocity += front;
                 break;
             }
             case A:
             {
-                glm::vec3 right = glm::normalize(glm::cross(camera.front, camera.up));
-                transform.velocity = -right * moveSpeed;
+                transform.velocity -= right;
                 break;
             }
             case S:
             {
-                transform.velocity = -glm::normalize(camera.front) * moveSpeed;
+                transform.velocity -= front;
                 break;
             }
             case D:
             {
-                glm::vec3 right = glm::normalize(glm::cross(camera.front, camera.up));
-                transform.velocity = right * moveSpeed;
+                transform.velocity += right;
                 break;
             }
             case SPACE:
-                spin = !spin;
+            {
+                transform.velocity += camera.up;
                 break;
             }
+            case LEFT_SHIFT:
+            {
+                transform.velocity -= camera.up;
+                break;
+            }
+            }
+
+            transform.velocity = glm::normalize(transform.velocity) * moveSpeed;
+            std::cout << "Velocity: " << transform.velocity.x << ", " << transform.velocity.y << ", " << transform.velocity.z << std::endl;
         }
+    }
+
+    void onMouseEvent(double xpos, double ypos)
+    {
+        if (firstMouse)
+        {
+            this->xpos = xpos;
+            this->ypos = ypos;
+            firstMouse = false;
+            return;
+        }
+
+        double dx = xpos - this->xpos;
+        double dy = this->ypos - ypos;
+
+        processMouse(dx, dy);
+        this->xpos = xpos;
+        this->ypos = ypos;
     }
 };

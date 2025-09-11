@@ -24,6 +24,9 @@ public:
     virtual ~Renderer() = default;
 
     virtual void registerKeyCallback(std::function<void(KeyCode, KeyAction)> callback) = 0;
+    virtual void registerMouseCallback(std::function<void(double, double)> callback) = 0;
+
+    virtual void setMouseCapture(bool capture) = 0;
 
 protected:
     int WIDTH;

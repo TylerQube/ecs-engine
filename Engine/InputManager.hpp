@@ -15,6 +15,14 @@ public:
         }
     }
 
+    void mouseCallback(double xpos, double ypos)
+    {
+        for (auto sub : subscribers)
+        {
+            sub->onMouseEvent(xpos, ypos);
+        }
+    }
+
     void subscribe(std::shared_ptr<System> system)
     {
         subscribers.push_back(system);

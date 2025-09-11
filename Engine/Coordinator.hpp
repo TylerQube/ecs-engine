@@ -19,12 +19,19 @@ public:
         inputManager = std::make_unique<InputManager>();
 
         renderer = std::make_unique<OpenGLRenderer>("Hello Engine!", 800, 600);
+        renderer->setMouseCapture(true);
 
         renderer->registerKeyCallback(
             [this](KeyCode key, KeyAction action)
             {
                 inputManager->keyCallback(key, action);
             });
+        renderer->registerMouseCallback(
+            [this](double xpos, double ypos)
+            {
+                inputManager->mouseCallback(xpos, ypos);
+            });
+
     }
 
     template <typename T>

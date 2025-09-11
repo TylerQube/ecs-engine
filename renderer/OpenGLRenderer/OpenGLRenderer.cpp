@@ -61,6 +61,7 @@ OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned i
 
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, dispatchKeyCallback);
+    glfwSetCursorPosCallback(window, dispatchMouseCallback);
 }
 
 GLFWwindow *OpenGLRenderer::get_window()
@@ -276,6 +277,31 @@ void OpenGLRenderer::key_callback(GLFWwindow *window, int key, int scancode, int
 void OpenGLRenderer::registerKeyCallback(std::function<void(KeyCode, KeyAction)> callback)
 {
     engineKeyCallback = callback;
+}
+
+void OpenGLRenderer::mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+    engineMouseCallback(xpos, ypos);
+}
+
+void OpenGLRenderer::registerMouseCallback(std::function<void(double, double)> callback)
+{
+    engineMouseCallback = callback;
+}
+
+void OpenGLRenderer::dispatchMouseCallback(GLFWwindow *window, double xpos, double ypos)
+{
+    auto *renderer = static_cast<OpenGLRenderer *>(glfwGetWindowUserPointer(window));
+    if (renderer)
+        renderer->mouse_callback(window, xpos, ypos);
+}
+
+void OpenGLRenderer::setMouseCapture(bool capture)
+{
+    if (capture)
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    else
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 bool OpenGLRenderer::initialized = false;

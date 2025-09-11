@@ -16,6 +16,7 @@ private:
     unsigned int activeShader = 0;
 
     std::function<void(KeyCode, KeyAction)> engineKeyCallback = nullptr;
+    std::function<void(double, double)> engineMouseCallback = nullptr;
 
     std::unordered_map<std::string, std::shared_ptr<RenderMesh>> meshes;
 
@@ -28,8 +29,11 @@ private:
     void useShader(unsigned int shaderId);
 
     void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-
     static void dispatchKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+    void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+    static void dispatchMouseCallback(GLFWwindow* window, double xpos, double ypos);
+
 
 public:
     OpenGLRenderer(const char *title, unsigned int width, unsigned int height);
@@ -48,4 +52,7 @@ public:
     float getTime() override;
 
     void registerKeyCallback(std::function<void(KeyCode, KeyAction)> callback) override;
+    void registerMouseCallback(std::function<void(double, double)> callback) override;
+
+    void setMouseCapture(bool capture) override;
 };

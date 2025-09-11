@@ -52,7 +52,7 @@ public:
         Entity player = coordinator->createEntity("player");
         auto playerTransform = Transform{glm::vec3(-5.0f, 0.5f, 0.0f),
                                          glm::vec3(0.0f),
-                                         glm::vec3(0.0f),
+                                         { 0.0f, 0.0f, 0.0f },
                                          glm::vec3(1.0f)};
         coordinator->addComponent(player, playerTransform);
         auto playerCamera = Camera{glm::vec3(0.0f, 0.0f, 1.0f),
@@ -64,7 +64,7 @@ public:
         Entity wall = coordinator->createEntity("wall");
         auto wallTransform = Transform{glm::vec3(0.0f, 0.0f, 0.0f),
                                        glm::vec3(0.0f),
-                                       glm::vec3(0.0f),
+                                       { 0.0f, -90.0f, 0.0f },
                                        glm::vec3(1.0f)};
         coordinator->addComponent(wall, wallTransform);
         Renderable wallRenderable;
@@ -83,7 +83,6 @@ public:
 
         while (true)
         {
-
             float currentFrame = coordinator->getTime();
             float deltaTime = currentFrame - lastFrame;
             if(coordinator->startFrame() == -1) break;
@@ -92,7 +91,6 @@ public:
             renderSystem->update(deltaTime);
 
             coordinator->endFrame();
-
 
             lastFrame = currentFrame;
         }
