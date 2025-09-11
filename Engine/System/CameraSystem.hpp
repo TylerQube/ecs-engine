@@ -84,7 +84,7 @@ public:
             auto &camera = this->coordinator->getComponent<Camera>(entity);
             auto &transform = this->coordinator->getComponent<Transform>(entity);
 
-            auto front = camera.front;
+            auto front = glm::vec3(camera.front.x, 0.0f, camera.front.z);
             auto right = glm::cross(camera.front, camera.up);
 
             if (action == RELEASE)
@@ -117,12 +117,12 @@ public:
             }
             case SPACE:
             {
-                transform.velocity += camera.up;
+                transform.velocity -= glm::vec3(0.0f, 1.0f, 0.0f);
                 break;
             }
             case LEFT_SHIFT:
             {
-                transform.velocity -= camera.up;
+                transform.velocity += glm::vec3(0.0f, 1.0f, 0.0f);
                 break;
             }
             }
