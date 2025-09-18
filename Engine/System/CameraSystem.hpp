@@ -16,10 +16,10 @@ private:
     double ypos = 0;
 
 public:
-    Coordinator *coordinator;
-    void init(Coordinator &c)
+    Engine *engine;
+    void init(Engine &c)
     {
-        this->coordinator = &c;
+        this->engine = &c;
     }
 
     glm::mat4 getViewMatrix(glm::vec3 position, glm::vec3 front, glm::vec3 up)
@@ -31,16 +31,16 @@ public:
     {
         for (Entity entity : entities)
         {
-            auto &camera = this->coordinator->getComponent<Camera>(entity);
-            auto &transform = this->coordinator->getComponent<Transform>(entity);
+            auto &camera = this->engine->getComponent<Camera>(entity);
+            auto &transform = this->engine->getComponent<Transform>(entity);
 
             transform.position += transform.velocity * dt;
 
             glm::mat4 view = glm::lookAt(transform.position, transform.position + camera.front, camera.up);
-            coordinator->setViewMatrix(view);
+            engine->setViewMatrix(view);
 
-            glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), coordinator->getAspectRatio(), 0.1f, 100.0f);
-            coordinator->setProjectionMatrix(projection);
+            glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), engine->getAspectRatio(), 0.1f, 100.0f);
+            engine->setProjectionMatrix(projection);
         }
     }
 
@@ -62,8 +62,8 @@ public:
     {
         for (Entity entity : entities)
         {
-            auto &transform = this->coordinator->getComponent<Transform>(entity);
-            auto &camera = this->coordinator->getComponent<Camera>(entity);
+            auto &transform = this->engine->getComponent<Transform>(entity);
+            auto &camera = this->engine->getComponent<Camera>(entity);
 
             transform.rotation.yaw -= dx * mouseSensitivity;
             transform.rotation.pitch -= dy * mouseSensitivity;
@@ -81,8 +81,8 @@ public:
     {
         for (Entity entity : entities)
         {
-            auto &camera = this->coordinator->getComponent<Camera>(entity);
-            auto &transform = this->coordinator->getComponent<Transform>(entity);
+            auto &camera = this->engine->getComponent<Camera>(entity);
+            auto &transform = this->engine->getComponent<Transform>(entity);
 
             auto front = glm::vec3(camera.front.x, 0.0f, camera.front.z);
             auto right = glm::cross(camera.front, camera.up);

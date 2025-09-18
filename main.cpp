@@ -1,14 +1,14 @@
 #include <iostream>
-#include "Engine/Engine.hpp"
+#include "Game/Game.hpp"
 
 int
 main ()
 {
   std::cout << "Hello, project!" << std::endl;
 
-  auto engine = std::make_unique<Engine>();
-  engine->init();
-  engine->run();
+  auto game = std::make_unique<Game>();
+  game->init();
+  game->run();
 
   return 0;
 }
