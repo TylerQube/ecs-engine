@@ -9,6 +9,7 @@ struct Rotation {
 struct Transform {
     glm::vec3 position;
     glm::vec3 velocity;
+    glm::vec3 acceleration;
     Rotation rotation;
     glm::vec3 scale;
 };

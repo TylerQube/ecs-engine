@@ -8,12 +8,16 @@
 class CameraSystem : public System
 {
 private:
-    float moveSpeed = 5.0f;
     float mouseSensitivity = 0.1f;
 
     bool firstMouse = true;
     double xpos = 0;
     double ypos = 0;
+
+    float maxVelocity = 4.0f;
+    float acceleration = 10.0f;
+
+    std::set<KeyCode> keysDown = {};
 
 public:
     Engine *engine;
@@ -33,6 +37,13 @@ public:
         {
             auto &camera = this->engine->getComponent<Camera>(entity);
             auto &transform = this->engine->getComponent<Transform>(entity);
+            updateAcceleration(entity, dt);
+
+            transform.velocity += transform.acceleration * dt;
+
+            // cap velocity
+            if(glm::length(transform.velocity) > maxVelocity)
+                transform.velocity = glm::normalize(transform.velocity) * maxVelocity;
 
             transform.position += transform.velocity * dt;
 
@@ -41,6 +52,38 @@ public:
 
             glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), engine->getAspectRatio(), 0.1f, 100.0f);
             engine->setProjectionMatrix(projection);
+        }
+    }
+
+    const float epsilon = 1e-5;
+    void updateAcceleration(Entity& entity, float dt) {
+        auto &camera = this->engine->getComponent<Camera>(entity);
+        auto &transform = this->engine->getComponent<Transform>(entity);
+
+        auto frontFlat = glm::vec3(camera.front.x, 0.0f, camera.front.z);
+        auto right = glm::cross(camera.front, camera.up);
+        auto rightFlat = glm::vec3(right.x, 0.0f, right.z);
+        auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+
+        transform.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        if(keysDown.size() == 0) transform.acceleration = -transform.velocity;
+
+        if(keysDown.count(W)) transform.acceleration += frontFlat;
+        if(keysDown.count(A)) transform.acceleration -= rightFlat;
+        if(keysDown.count(S)) transform.acceleration -= frontFlat;
+        if(keysDown.count(D)) transform.acceleration += rightFlat;
+        if(keysDown.count(SPACE)) transform.acceleration -= up;
+        if(keysDown.count(LEFT_SHIFT)) transform.acceleration += up;
+
+        if(glm::length(transform.acceleration) > epsilon)
+            transform.acceleration = glm::normalize(transform.acceleration) * acceleration;
+        else
+            transform.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        if(keysDown.size() == 0) { 
+            transform.acceleration.x /= 1.7f; 
+            transform.acceleration.z /= 1.7f; 
         }
     }
 
@@ -89,46 +132,13 @@ public:
 
             if (action == RELEASE)
             {
-                transform.velocity = glm::vec3(0.0f);
-                continue;
+                keysDown.erase(key);
             }
 
-            switch (key)
-            {
-            case W:
-            {
-                transform.velocity += front;
-                break;
-            }
-            case A:
-            {
-                transform.velocity -= right;
-                break;
-            }
-            case S:
-            {
-                transform.velocity -= front;
-                break;
-            }
-            case D:
-            {
-                transform.velocity += right;
-                break;
-            }
-            case SPACE:
-            {
-                transform.velocity -= glm::vec3(0.0f, 1.0f, 0.0f);
-                break;
-            }
-            case LEFT_SHIFT:
-            {
-                transform.velocity += glm::vec3(0.0f, 1.0f, 0.0f);
-                break;
-            }
+            if (action == PRESS) {
+                keysDown.insert(key);
             }
 
-            transform.velocity = glm::normalize(transform.velocity) * moveSpeed;
-            std::cout << "Velocity: " << transform.velocity.x << ", " << transform.velocity.y << ", " << transform.velocity.z << std::endl;
         }
     }
 
