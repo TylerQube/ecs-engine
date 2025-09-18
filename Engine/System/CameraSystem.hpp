@@ -73,8 +73,8 @@ public:
         if(keysDown.count(A)) transform.acceleration -= rightFlat;
         if(keysDown.count(S)) transform.acceleration -= frontFlat;
         if(keysDown.count(D)) transform.acceleration += rightFlat;
-        if(keysDown.count(SPACE)) transform.acceleration -= up;
-        if(keysDown.count(LEFT_SHIFT)) transform.acceleration += up;
+        if(keysDown.count(SPACE)) transform.acceleration += up;
+        if(keysDown.count(LEFT_SHIFT)) transform.acceleration -= up;
 
         if(glm::length(transform.acceleration) > epsilon)
             transform.acceleration = glm::normalize(transform.acceleration) * acceleration;
@@ -97,7 +97,7 @@ public:
         dir.z = sin(glm::radians(rot.yaw)) * cos(glm::radians(rot.pitch));
 
         camera.front = glm::normalize(dir);
-        glm::vec3 right = glm::normalize(glm::cross(camera.front, glm::vec3(0.0f, 1.0f, 0.0f)));
+        glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), camera.front));
         camera.up = glm::normalize(glm::cross(camera.front, right));
     }
 
@@ -108,8 +108,8 @@ public:
             auto &transform = this->engine->getComponent<Transform>(entity);
             auto &camera = this->engine->getComponent<Camera>(entity);
 
-            transform.rotation.yaw -= dx * mouseSensitivity;
-            transform.rotation.pitch -= dy * mouseSensitivity;
+            transform.rotation.yaw += dx * mouseSensitivity;
+            transform.rotation.pitch += dy * mouseSensitivity;
 
             if (transform.rotation.pitch > 89.0f)
                 transform.rotation.pitch = 89.0f;

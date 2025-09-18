@@ -50,7 +50,7 @@ public:
         cameraSystem->init(*engine);
 
         Entity player = engine->createEntity("player");
-        auto playerTransform = Transform{glm::vec3(-5.0f, 0.1f, 0.0f),
+        auto playerTransform = Transform{glm::vec3(0.0f, 0.0f, 0.0f),
                                          glm::vec3(0.0f),
                                          glm::vec3(0.0f),
                                          { 0.0f, 0.0f, 0.0f },
@@ -63,7 +63,7 @@ public:
         engine->addComponent(player, playerCamera);
 
         Entity wall = engine->createEntity("wall");
-        auto wallTransform = Transform{glm::vec3(0.0f, 0.0f, 0.0f),
+        auto wallTransform = Transform{glm::vec3(0.0f, 1.0f, 0.0f),
                                        glm::vec3(0.0f),
                                        glm::vec3(0.0f),
                                        { 0.0f, -90.0f, 0.0f },
