@@ -115,6 +115,7 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
     // }
 
     auto mesh = std::make_shared<RenderMesh>();
+    mesh->index_count = wMesh->indices.size();
     // create buffers/arrays
     glGenVertexArrays(1, &mesh->VAO);
     glGenBuffers(1, &mesh->VBO);
@@ -193,7 +194,7 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
 
     // draw mesh
     glBindVertexArray(mesh->VAO);
-    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, mesh->index_count, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
     // always good practice to set everything back to defaults once configured.

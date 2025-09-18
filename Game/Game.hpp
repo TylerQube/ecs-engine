@@ -71,11 +71,12 @@ public:
         WorldMesh mesh;
         mesh.shaderId = engine->loadShader("shaders/vertex_shader.glsl", "shaders/fragment_shader.glsl");
         mesh.vertices = {
-            {{-0.5f, 0.0f, 0.5f}},
-            {{0.5f, 1.0f, 0.5f}},
-            {{0.0f, 0.0f, 0.0f}},
+            {{-1.0f, 0.0f, -1.0f}},
+            {{-1.0f, 0.0f,  1.0f}},
+            {{ 1.0f, 0.0f, -1.0f}},
+            {{ 1.0f, 0.0f,  1.0f}},
         };
-        mesh.indices = {0, 1, 2};
+        mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = "wallMesh";
         wallRenderable.meshes.push_back(mesh);
 
