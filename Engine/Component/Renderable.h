@@ -12,8 +12,11 @@ using MeshId = unsigned int;
 
 struct Vertex
 {
-    
     glm::vec3 Position;
+    // normal
+    glm::vec3 Normal;
+    // texCoords
+    glm::vec2 TexCoords;
 };
 
 struct Texture
@@ -28,7 +31,7 @@ struct WorldMesh
     unsigned int shaderId;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    // std::vector<Texture> textures;
+    std::vector<Texture> textures;
 
     std::string name;
 };
