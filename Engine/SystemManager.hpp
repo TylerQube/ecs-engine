@@ -50,8 +50,9 @@ public:
             auto const &system = pair.second;
             auto const &signature = signatures[sysType];
 
-            if (signature == newSignature)
+            if ((newSignature & signature) == signature)
             {
+                std::cout << "adding " << entity << " to system " << sysType << std::endl;
                 system->entities.insert(entity);
             }
             else

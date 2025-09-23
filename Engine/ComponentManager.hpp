@@ -41,8 +41,19 @@ public:
     }
 
     template <typename T>
+    bool hasComponent(Entity entity) {
+        return getComponentArray<T>()->hasComponent(entity);
+    }
+
+    template <typename T>
     T& getComponent(Entity entity) {
         return getComponentArray<T>()->getComponent(entity);
+    }
+
+    template <typename T>
+    std::vector<Entity> getEntitiesWithComponent() {
+        std::cout << "Getting entities with component ID " << getComponentId<T>() << std::endl;
+        return getComponentArray<T>()->getEntities();
     }
 
     template <typename T>

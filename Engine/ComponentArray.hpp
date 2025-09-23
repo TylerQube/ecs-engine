@@ -41,6 +41,20 @@ public:
         return components[entityToIndexMap[entity]];
     }
 
+    bool hasComponent(Entity entity)
+    {
+        return entityToIndexMap.find(entity) != entityToIndexMap.end();
+    }
+
+    std::vector<Entity> getEntities() {
+        std::cout << "entityToIndexMap size: " << entityToIndexMap.size() << std::endl;
+        std::vector<Entity> ents;
+        for (auto const& pair : entityToIndexMap) {
+            ents.push_back(pair.first);
+        }
+        return ents;
+    }
+
 private:
     std::array<T, MAX_ENTITIES> components;
     std::map<Entity, unsigned int> entityToIndexMap;

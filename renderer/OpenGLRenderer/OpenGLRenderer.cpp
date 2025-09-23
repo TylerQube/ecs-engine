@@ -176,7 +176,6 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
         glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
 
         // now set the sampler to the correct texture unit
-        std::cout << cmesh->shaderId << " " << i << std::endl;
         glUniform1i(glGetUniformLocation(cmesh->shaderId, "myTexture"), i);
         // and finally bind the texture
         glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);

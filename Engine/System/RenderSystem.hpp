@@ -16,11 +16,6 @@ public:
         for (Entity entity : entities)
         {
             auto renderable = engine->getComponent<Renderable>(entity);
-        }
-
-        for (Entity entity : entities)
-        {
-            auto renderable = engine->getComponent<Renderable>(entity);
             auto transform = engine->getComponent<Transform>(entity);
             for (auto &mesh : renderable.meshes)
             {
@@ -36,7 +31,4 @@ public:
             }
         }
     }
-
-    void onKeyEvent(KeyCode key, KeyAction action) {}
-    void onMouseEvent(double xpos, double ypos) {}
 };
