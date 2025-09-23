@@ -28,7 +28,8 @@ public:
 
     virtual void setMouseCapture(bool capture) = 0;
 
-    unsigned int loadTextureFromFile(char *path);
+    virtual unsigned int loadTextureFromFile(const char *path) = 0;
+
 protected:
     int WIDTH;
     int HEIGHT;

@@ -62,6 +62,13 @@ public:
                                    45.0f};
         engine->addComponent(player, playerCamera);
 
+        unsigned int stoneTexId = engine->loadTextureFromFile("./textures/stone_tile.jpg");
+        auto stoneTexture = Texture{
+            stoneTexId,
+            "texture_diffuse",
+            "./textures/stone_tile.jpg"
+        };
+
         Entity wall = engine->createEntity("wall");
         auto wallTransform = Transform{glm::vec3(0.0f, 1.0f, 0.0f),
                                        glm::vec3(0.0f),
@@ -71,15 +78,16 @@ public:
         engine->addComponent(wall, wallTransform);
         Renderable wallRenderable;
         WorldMesh mesh;
-        mesh.shaderId = engine->loadShader("shaders/vertex_shader.glsl", "shaders/fragment_shader.glsl");
+        mesh.shaderId = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
         mesh.vertices = {
-            {{-1.0f, 0.0f, -1.0f}},
-            {{-1.0f, 0.0f,  1.0f}},
-            {{ 1.0f, 0.0f, -1.0f}},
-            {{ 1.0f, 0.0f,  1.0f}},
+            {{-1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f, -1.0f}},
+            {{-1.0f, 0.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f,  1.0f}},
+            {{ 1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, { 1.0f, -1.0f}},
+            {{ 1.0f, 0.0f,  1.0f}, {0.0f, 1.0f, 0.0f}, { 1.0f,  1.0f}},
         };
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = "wallMesh";
+        mesh.textures.push_back(stoneTexture);
         wallRenderable.meshes.push_back(mesh);
 
         engine->addComponent(wall, wallRenderable);

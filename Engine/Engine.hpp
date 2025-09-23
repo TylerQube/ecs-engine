@@ -31,7 +31,6 @@ public:
             {
                 inputManager->mouseCallback(xpos, ypos);
             });
-
     }
 
     template <typename T>
@@ -40,7 +39,8 @@ public:
         return systemManager->registerSystem<T>();
     }
 
-    void subscribeSystemToInput(std::shared_ptr<System> system) {
+    void subscribeSystemToInput(std::shared_ptr<System> system)
+    {
         inputManager->subscribe(system);
     }
 
@@ -130,6 +130,11 @@ public:
     float getTime()
     {
         return renderer->getTime();
+    }
+
+    unsigned int loadTextureFromFile(const char *path)
+    {
+        return renderer->loadTextureFromFile(path);
     }
 
 private:

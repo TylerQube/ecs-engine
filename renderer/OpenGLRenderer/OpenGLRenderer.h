@@ -34,8 +34,6 @@ private:
     void mouse_callback(GLFWwindow *window, double xpos, double ypos);
     static void dispatchMouseCallback(GLFWwindow *window, double xpos, double ypos);
 
-    unsigned int loadTextureFromFile(char *path);
-
 public:
     OpenGLRenderer(const char *title, unsigned int width, unsigned int height);
     GLFWwindow *get_window();
@@ -56,4 +54,6 @@ public:
     void registerMouseCallback(std::function<void(double, double)> callback) override;
 
     void setMouseCapture(bool capture) override;
+
+    unsigned int loadTextureFromFile(const char *path) override;
 };

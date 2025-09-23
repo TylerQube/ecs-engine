@@ -31,6 +31,7 @@ public:
         return glm::lookAt(position, position + front, up);
     }
 
+    double speedTol = 0.05;
     void update(float dt)
     {
         for (Entity entity : entities)
@@ -40,6 +41,7 @@ public:
             updateAcceleration(entity, dt);
 
             transform.velocity += transform.acceleration * dt;
+            if(glm::length(transform.velocity) < speedTol) transform.velocity = glm::vec3(0.0f);
 
             // cap velocity
             if(glm::length(transform.velocity) > maxVelocity)
