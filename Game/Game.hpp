@@ -6,6 +6,7 @@
 
 #include "Engine/System/RenderSystem.hpp"
 #include "Engine/System/CameraSystem.hpp"
+#include "Engine/System/TransformSystem.hpp"
 #include "Engine/System/ColliderSystem.hpp"
 
 #include "Engine/Engine.hpp"
@@ -32,8 +33,7 @@ public:
         engine->registerComponent<Renderable>();
         engine->registerComponent<Camera>();
         engine->registerComponent<Collider>();
-        engine->registerComponent<SphereCollider>();
-        engine->registerComponent<MeshCollider>();
+        engine->registerComponent<AABB>();
 
         auto renderSystem = engine->registerSystem<RenderSystem>();
         Signature signature;
@@ -51,6 +51,12 @@ public:
 
         engine->subscribeSystemToInput(cameraSystem);
         cameraSystem->init(*engine);
+
+        auto movementSystem = engine->registerSystem<TransformSystem>();
+        signature.reset();
+        signature.set(engine->getComponentId<Transform>());
+        engine->setSignature<TransformSystem>(signature);
+        movementSystem->init(*engine);
 
         auto colliderSystem = engine->registerSystem<ColliderSystem>();
         signature.reset();
@@ -74,9 +80,9 @@ public:
         engine->addComponent(player, playerCamera);
 
         auto playerCollider = Collider{};
-        auto playerSphereCollider = SphereCollider{0.5f};
+        auto playerAABB = AABB{glm::vec3(-0.2f, -0.7f, -0.2f), glm::vec3(0.2f, 0.2f, 0.2f)};
         engine->addComponent(player, playerCollider);
-        engine->addComponent(player, playerSphereCollider);
+        engine->addComponent(player, playerAABB);
 
         unsigned int stoneTexId = engine->loadTextureFromFile("./textures/stone_tile.jpg");
         auto stoneTexture = Texture{
@@ -107,9 +113,9 @@ public:
         engine->addComponent(wall, wallRenderable);
 
         auto wallCollider = Collider{};
-        auto wallSphereCollider = SphereCollider{0.5f};
+        auto wallAABB = AABB({glm::vec3(-1.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 1.0f)});
         engine->addComponent(wall, wallCollider);
-        engine->addComponent(wall, wallSphereCollider);
+        engine->addComponent(wall, wallAABB);
 
         while (true)
         {
@@ -120,6 +126,7 @@ public:
 
             cameraSystem->update(deltaTime);
             colliderSystem->update(deltaTime);
+            movementSystem->update(deltaTime);
             renderSystem->update(deltaTime);
 
             engine->endFrame();

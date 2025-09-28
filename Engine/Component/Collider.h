@@ -3,6 +3,11 @@
 
 struct Collider {};
 
+struct AABB {
+    glm::vec3 min;
+    glm::vec3 max;
+};
+
 struct SphereCollider {
     float radius;
 };

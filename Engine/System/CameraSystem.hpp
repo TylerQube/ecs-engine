@@ -14,7 +14,6 @@ private:
     double xpos = 0;
     double ypos = 0;
 
-    float maxVelocity = 4.0f;
     float acceleration = 10.0f;
 
     std::set<KeyCode> keysDown = {};
@@ -31,7 +30,6 @@ public:
         return glm::lookAt(position, position + front, up);
     }
 
-    double speedTol = 0.05;
     void update(float dt)
     {
         for (Entity entity : entities)
@@ -41,13 +39,6 @@ public:
             updateAcceleration(entity, dt);
 
             transform.velocity += transform.acceleration * dt;
-            if(glm::length(transform.velocity) < speedTol) transform.velocity = glm::vec3(0.0f);
-
-            // cap velocity
-            if(glm::length(transform.velocity) > maxVelocity)
-                transform.velocity = glm::normalize(transform.velocity) * maxVelocity;
-
-            transform.position += transform.velocity * dt;
 
             glm::mat4 view = glm::lookAt(transform.position, transform.position + camera.front, camera.up);
             engine->setViewMatrix(view);

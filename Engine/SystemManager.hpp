@@ -52,7 +52,6 @@ public:
 
             if ((newSignature & signature) == signature)
             {
-                std::cout << "adding " << entity << " to system " << sysType << std::endl;
                 system->entities.insert(entity);
             }
             else
