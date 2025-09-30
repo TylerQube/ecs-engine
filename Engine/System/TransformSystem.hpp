@@ -9,8 +9,7 @@
 class TransformSystem : public System
 {
 private:
-    float maxVelocity = 4.0f;
-    float acceleration = 10.0f;
+    float maxVelocity = 40.0f;
 public:
     double speedTol = 0.05;
 
@@ -26,8 +25,6 @@ public:
         {
             auto &transform = this->engine->getComponent<Transform>(entity);
 
-            std::cout << "Position " << transform.position.x << "," << transform.position.y << "," << transform.position.z << std::endl;
-
             if(glm::length(transform.velocity) < speedTol) transform.velocity = glm::vec3(0.0f);
 
             // cap velocity
@@ -35,6 +32,8 @@ public:
                 transform.velocity = glm::normalize(transform.velocity) * maxVelocity;
 
             transform.position += transform.velocity * dt;
+
+            transform.acceleration *= 0.0f;
         }
     }
 };

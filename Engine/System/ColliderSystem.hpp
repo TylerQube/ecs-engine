@@ -53,7 +53,8 @@ public:
                     auto slideMove = remainingMove - collision.normal * dot;
 
                     transform.velocity = moveToImpact + slideMove;
-                    transform.velocity += collision.normal * epsilon;
+                    transform.acceleration = glm::vec3(0.0f);
+                    // transform.velocity += collision.normal * epsilon;
                 }
             }
         }
@@ -74,6 +75,7 @@ private:
         auto vb = transformB.velocity * dt;
 
         auto &aabbA = engine->getComponent<AABB>(a);
+        aabbA.isTouching = false;
         auto &aabbB = engine->getComponent<AABB>(b);
 
         auto a0 = transformA.position + aabbA.min;
@@ -159,7 +161,8 @@ private:
         float entryTime = std::max({txEntry, tyEntry, tzEntry});
         float exitTime = std::min({txExit, tyExit, tzExit});
 
-        if (entryTime > exitTime || (txEntry < 0.0f && tyEntry < 0.0f && tzEntry < 0.0f) || txEntry > 1.0f || tyEntry > 1.0f || tzEntry > 1.0f)
+
+        if (entryTime < 0.0f || entryTime > exitTime || (txEntry < 0.0f && tyEntry < 0.0f && tzEntry < 0.0f) || txEntry > 1.0f || tyEntry > 1.0f || tzEntry > 1.0f)
             return Collision{
                 1.0f,
                 glm::vec3(0.0f)};
@@ -177,6 +180,8 @@ private:
         {
             normal.z = (va.z > 0.0f) ? -1.0f : 1.0f;
         }
+
+        aabbA.isTouching = true;
 
         return Collision{
             entryTime,

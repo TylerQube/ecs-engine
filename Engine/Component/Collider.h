@@ -1,3 +1,4 @@
+#pragma once
 #include <glm/vec3.hpp>
 #include <vector>
 
@@ -6,6 +7,7 @@ struct Collider {};
 struct AABB {
     glm::vec3 min;
     glm::vec3 max;
+    bool isTouching = false;
 };
 
 struct SphereCollider {

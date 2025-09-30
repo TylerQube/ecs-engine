@@ -4,6 +4,7 @@
 #include "System.h"
 
 #include "Engine/Component/Camera.h"
+#include "Engine/Component/Collider.h"
 
 class CameraSystem : public System
 {
@@ -14,8 +15,10 @@ private:
     double xpos = 0;
     double ypos = 0;
 
-    float acceleration = 10.0f;
+    float movementAcceleration = 40.0f;
+    float frictionAcc = movementAcceleration * 0.3f;
 
+    std::set<KeyCode> keysHeld = {};
     std::set<KeyCode> keysDown = {};
 
 public:
@@ -38,6 +41,7 @@ public:
             auto &transform = this->engine->getComponent<Transform>(entity);
             updateAcceleration(entity, dt);
 
+
             transform.velocity += transform.acceleration * dt;
 
             glm::mat4 view = glm::lookAt(transform.position, transform.position + camera.front, camera.up);
@@ -49,6 +53,8 @@ public:
     }
 
     const float epsilon = 1e-5;
+    const float maxAcceleration = 20.0f;
+    bool holdingSpace = false;
     void updateAcceleration(Entity& entity, float dt) {
         auto &camera = this->engine->getComponent<Camera>(entity);
         auto &transform = this->engine->getComponent<Transform>(entity);
@@ -58,26 +64,45 @@ public:
         auto rightFlat = glm::vec3(right.x, 0.0f, right.z);
         auto up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-        transform.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+        auto moveAcc = glm::vec3(0.0f);
 
-        if(keysDown.size() == 0) transform.acceleration = -transform.velocity;
+        auto moveDir = glm::vec3(0.0f);
 
-        if(keysDown.count(W)) transform.acceleration += frontFlat;
-        if(keysDown.count(A)) transform.acceleration -= rightFlat;
-        if(keysDown.count(S)) transform.acceleration -= frontFlat;
-        if(keysDown.count(D)) transform.acceleration += rightFlat;
-        if(keysDown.count(SPACE)) transform.acceleration += up;
-        if(keysDown.count(LEFT_SHIFT)) transform.acceleration -= up;
+        if(keysHeld.count(W) || keysDown.count(W)) moveDir += frontFlat;
+        if(keysHeld.count(A) || keysDown.count(A)) moveDir -= rightFlat;
+        if(keysHeld.count(S) || keysDown.count(S)) moveDir -= frontFlat;
+        if(keysHeld.count(D) || keysDown.count(D)) moveDir += rightFlat;
+        if(keysHeld.count(LEFT_SHIFT) || keysDown.count(LEFT_SHIFT)) moveDir -= up;
+        moveDir = glm::length(moveDir) > 0.0f ? glm::normalize(moveDir) : moveDir;
+        moveDir *= movementAcceleration;
 
-        if(glm::length(transform.acceleration) > epsilon)
-            transform.acceleration = glm::normalize(transform.acceleration) * acceleration;
-        else
-            transform.acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+        moveAcc += moveDir;
 
-        if(keysDown.size() == 0) { 
-            transform.acceleration.x /= 1.7f; 
-            transform.acceleration.z /= 1.7f; 
+        bool hasCollider = engine->hasComponent<Collider>(entity);
+        if(hasCollider) {
+            auto aabb = engine->getComponent<AABB>(entity);
+            bool isTouching = aabb.isTouching;
+
+            if(keysDown.count(SPACE) && isTouching) {
+                std::cout << "jumping " << isTouching << std::endl;
+                moveAcc += up * 500.0f;
+            } 
+
+            if(isTouching) {
+                auto friction = -transform.velocity * frictionAcc;
+                friction.y = 0.0f;
+                moveAcc += friction;
+            } else {
+                auto airFriction = -transform.velocity * frictionAcc / 1.5f;
+                airFriction.y = 0.0f;
+                moveAcc += airFriction;
+            }
+
         }
+
+
+
+        transform.acceleration += moveAcc;
     }
 
     void updateCamVectors(Camera &camera, Transform &transform)
@@ -125,11 +150,20 @@ public:
 
             if (action == RELEASE)
             {
+                std::cout << "release: " << key << std::endl;
                 keysDown.erase(key);
+                keysHeld.erase(key);
             }
 
             if (action == PRESS) {
+                std::cout << "press: " << key << std::endl;
                 keysDown.insert(key);
+            }
+
+            if (action == REPEAT) {
+                std::cout << "repeat: " << key << std::endl;
+                keysDown.erase(key);
+                keysHeld.insert(key);
             }
 
         }

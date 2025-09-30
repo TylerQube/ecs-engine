@@ -3,10 +3,12 @@
 #include "Renderer/Renderer.h"
 #include "Engine/Component/Transform.h"
 #include "Engine/Component/Camera.h"
+#include "Engine/Component/Gravity.h"
 
 #include "Engine/System/RenderSystem.hpp"
 #include "Engine/System/CameraSystem.hpp"
 #include "Engine/System/TransformSystem.hpp"
+#include "Engine/System/GravitySystem.hpp"
 #include "Engine/System/ColliderSystem.hpp"
 
 #include "Engine/Engine.hpp"
@@ -30,6 +32,7 @@ public:
     void run()
     {
         engine->registerComponent<Transform>();
+        engine->registerComponent<Gravity>();
         engine->registerComponent<Renderable>();
         engine->registerComponent<Camera>();
         engine->registerComponent<Collider>();
@@ -65,6 +68,15 @@ public:
         engine->setSignature<ColliderSystem>(signature);
         colliderSystem->init(*engine);
 
+        auto gravitySystem = engine->registerSystem<GravitySystem>();
+        signature.reset();
+        signature.set(engine->getComponentId<Transform>());
+        signature.set(engine->getComponentId<Gravity>());
+        engine->setSignature<GravitySystem>(signature);
+        gravitySystem->init(*engine);
+        
+        auto globalGravity = Gravity { glm::vec3(0.0f, -9.81f, 0.0f) };
+
 
         Entity player = engine->createEntity("player");
         auto playerTransform = Transform{glm::vec3(0.0f, 3.0f, 0.0f),
@@ -78,9 +90,10 @@ public:
                                    0.1f,
                                    45.0f};
         engine->addComponent(player, playerCamera);
+        engine->addComponent(player, globalGravity);
 
         auto playerCollider = Collider{};
-        auto playerAABB = AABB{glm::vec3(-0.2f, -0.7f, -0.2f), glm::vec3(0.2f, 0.2f, 0.2f)};
+        auto playerAABB = AABB{glm::vec3(-0.1f, -0.5f, -0.1f), glm::vec3(0.1f, 0.2f, 0.1f)};
         engine->addComponent(player, playerCollider);
         engine->addComponent(player, playerAABB);
 
@@ -101,10 +114,10 @@ public:
         WorldMesh mesh;
         mesh.shaderId = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
         mesh.vertices = {
-            {{-1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f, -1.0f}},
-            {{-1.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f, 1.0f}},
-            {{1.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, -1.0f}},
-            {{1.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+            {{-2.0f, 0.0f, -2.0f}, {0.0f, 2.0f, 0.0f}, {-2.0f, -2.0f}},
+            {{-2.0f, 0.0f, 2.0f}, {0.0f, 2.0f, 0.0f}, {-2.0f, 2.0f}},
+            {{2.0f, 0.0f, -2.0f}, {0.0f, 2.0f, 0.0f}, {2.0f, -2.0f}},
+            {{2.0f, 0.0f, 2.0f}, {0.0f, 2.0f, 0.0f}, {2.0f, 2.0f}},
         };
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = "wallMesh";
@@ -113,7 +126,7 @@ public:
         engine->addComponent(wall, wallRenderable);
 
         auto wallCollider = Collider{};
-        auto wallAABB = AABB({glm::vec3(-1.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 1.0f)});
+        auto wallAABB = AABB({glm::vec3(-2.0f, 0.0f, -2.0f), glm::vec3(2.0f, 0.0f, 2.0f)});
         engine->addComponent(wall, wallCollider);
         engine->addComponent(wall, wallAABB);
 
@@ -124,6 +137,7 @@ public:
             if (engine->startFrame() == -1)
                 break;
 
+            gravitySystem->update(deltaTime);
             cameraSystem->update(deltaTime);
             colliderSystem->update(deltaTime);
             movementSystem->update(deltaTime);
