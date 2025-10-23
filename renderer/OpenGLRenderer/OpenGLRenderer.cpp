@@ -10,6 +10,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 #include <Engine/Types.hpp>
+#include <Engine/Component/Transform.h>
 
 void OpenGLRenderer::init()
 {
@@ -57,6 +58,9 @@ OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned i
     if (!load)
         return;
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     stbi_set_flip_vertically_on_load(true);
 
     glfwSetWindowUserPointer(window, this);
@@ -152,7 +156,7 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
     // weights
     // glEnableVertexAttribArray(6);
     // glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
-    // glBindVertexArray(0);
+    glBindVertexArray(0);
 
     meshes[wMesh->name] = mesh;
 }
@@ -165,6 +169,8 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     auto mesh = iter->second;
 
     useShader(cmesh->shaderId);
+    this->updateShaderMatrices();
+
 
     // bind appropriate textures
     unsigned int diffuseNr = 1;
@@ -173,12 +179,11 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     unsigned int heightNr = 1;
     for (unsigned int i = 0; i < cmesh->textures.size(); i++)
     {
-        glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
-
+        // bind the texture
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
         // now set the sampler to the correct texture unit
         glUniform1i(glGetUniformLocation(cmesh->shaderId, "myTexture"), i);
-        // and finally bind the texture
-        glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
     }
 
 
@@ -191,22 +196,30 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     glActiveTexture(GL_TEXTURE0);
 }
 
-void OpenGLRenderer::setViewMatrix(glm::mat4 view)
-{
+void OpenGLRenderer::updateShaderMatrices() {
     unsigned int viewLoc = glGetUniformLocation(activeShader, "view");
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+
+    unsigned int projLoc = glGetUniformLocation(activeShader, "projection");
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+
+    unsigned int modelLoc = glGetUniformLocation(activeShader, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+}
+
+void OpenGLRenderer::setViewMatrix(glm::mat4 view)
+{
+    this->view = view;
 }
 
 void OpenGLRenderer::setProjectionMatrix(glm::mat4 projection)
 {
-    unsigned int projLoc = glGetUniformLocation(activeShader, "projection");
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+    this->projection = projection;
 }
 
 void OpenGLRenderer::setModelMatrix(glm::mat4 model)
 {
-    unsigned int modelLoc = glGetUniformLocation(activeShader, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+    this->model = model;
 }
 
 void OpenGLRenderer::dispatchKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -323,8 +336,8 @@ unsigned int OpenGLRenderer::loadTextureFromFile(const char *path)
         // Set texture parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
     else
     {

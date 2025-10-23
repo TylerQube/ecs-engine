@@ -150,18 +150,15 @@ public:
 
             if (action == RELEASE)
             {
-                std::cout << "release: " << key << std::endl;
                 keysDown.erase(key);
                 keysHeld.erase(key);
             }
 
             if (action == PRESS) {
-                std::cout << "press: " << key << std::endl;
                 keysDown.insert(key);
             }
 
             if (action == REPEAT) {
-                std::cout << "repeat: " << key << std::endl;
                 keysDown.erase(key);
                 keysHeld.insert(key);
             }

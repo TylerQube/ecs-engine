@@ -24,9 +24,9 @@ public:
                 model = glm::rotate(model, glm::radians(transform.rotation.yaw), glm::vec3(1.0f, 0.0f, 0.0f));
                 model = glm::rotate(model, glm::radians(transform.rotation.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
                 model = glm::rotate(model, glm::radians(transform.rotation.roll), glm::vec3(0.0f, 0.0f, 1.0f));
+
                 engine->setModelMatrix(model);
 
-                engine->uploadMesh(&mesh);
                 engine->renderMesh(&mesh);
             }
         }

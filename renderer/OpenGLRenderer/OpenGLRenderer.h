@@ -34,6 +34,12 @@ private:
     void mouse_callback(GLFWwindow *window, double xpos, double ypos);
     static void dispatchMouseCallback(GLFWwindow *window, double xpos, double ypos);
 
+    glm::mat4 view;
+    glm::mat4 model;
+    glm::mat4 projection;
+    
+    void updateShaderMatrices();
+
 public:
     OpenGLRenderer(const char *title, unsigned int width, unsigned int height);
     GLFWwindow *get_window();

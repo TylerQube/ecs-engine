@@ -14,6 +14,8 @@
 #include "Engine/Engine.hpp"
 #include "Engine/Types.hpp"
 
+#include "Enemy.hpp"
+
 class Game
 {
 private:
@@ -77,6 +79,7 @@ public:
         
         auto globalGravity = Gravity { glm::vec3(0.0f, -9.81f, 0.0f) };
 
+        auto enemy = Enemy::create(engine, glm::vec3(3.0f, 0.0f, 0.0f));
 
         Entity player = engine->createEntity("player");
         auto playerTransform = Transform{glm::vec3(0.0f, 3.0f, 0.0f),
@@ -104,7 +107,7 @@ public:
             "./textures/stone_tile.jpg"};
 
         Entity wall = engine->createEntity("wall");
-        auto wallTransform = Transform{glm::vec3(0.0f, 1.0f, 0.0f),
+        auto wallTransform = Transform{glm::vec3(0.0f, 0.0f, 0.0f),
                                        glm::vec3(0.0f),
                                        glm::vec3(0.0f),
                                        {0.0f, -90.0f, 0.0f},
@@ -114,10 +117,10 @@ public:
         WorldMesh mesh;
         mesh.shaderId = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
         mesh.vertices = {
-            {{-2.0f, 0.0f, -2.0f}, {0.0f, 2.0f, 0.0f}, {-2.0f, -2.0f}},
-            {{-2.0f, 0.0f, 2.0f}, {0.0f, 2.0f, 0.0f}, {-2.0f, 2.0f}},
-            {{2.0f, 0.0f, -2.0f}, {0.0f, 2.0f, 0.0f}, {2.0f, -2.0f}},
-            {{2.0f, 0.0f, 2.0f}, {0.0f, 2.0f, 0.0f}, {2.0f, 2.0f}},
+            {{-4.0f, 0.0f, -4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, -4.0f}},
+            {{-4.0f, 0.0f, 4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, 4.0f}},
+            {{4.0f, 0.0f, -4.0f}, {0.0f, 4.0f, 0.0f}, {4.0f, -4.0f}},
+            {{4.0f, 0.0f, 4.0f}, {0.0f, 4.0f, 0.0f}, {4.0f, 4.0f}},
         };
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = "wallMesh";
@@ -126,9 +129,10 @@ public:
         engine->addComponent(wall, wallRenderable);
 
         auto wallCollider = Collider{};
-        auto wallAABB = AABB({glm::vec3(-2.0f, 0.0f, -2.0f), glm::vec3(2.0f, 0.0f, 2.0f)});
+        auto wallAABB = AABB({glm::vec3(-4.0f, 0.0f, -4.0f), glm::vec3(4.0f, 0.0f, 4.0f)});
         engine->addComponent(wall, wallCollider);
         engine->addComponent(wall, wallAABB);
+
 
         while (true)
         {

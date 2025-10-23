@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Component/Renderable.h"
+#include <Engine/Component/Transform.h>
 #include <Engine/Types.hpp>
 
 class Renderer
