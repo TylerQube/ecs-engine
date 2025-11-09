@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <Renderer/OpenGLRenderer/Material.h>
 
 #define MAX_BONE_INFLUENCE 4
 
@@ -28,7 +29,7 @@ struct Texture
 
 struct WorldMesh
 {
-    unsigned int shaderId;
+    Material* material;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;

@@ -4,17 +4,19 @@
 #include "Engine/Component/Transform.h"
 #include "Engine/Component/Camera.h"
 #include "Engine/Component/Gravity.h"
+#include "Engine/Component/Enemy.h"
 
 #include "Engine/System/RenderSystem.hpp"
 #include "Engine/System/CameraSystem.hpp"
 #include "Engine/System/TransformSystem.hpp"
 #include "Engine/System/GravitySystem.hpp"
 #include "Engine/System/ColliderSystem.hpp"
+#include <Engine/System/EnemySystem.hpp>
 
 #include "Engine/Engine.hpp"
 #include "Engine/Types.hpp"
 
-#include "Enemy.hpp"
+#include "EnemyFactory.hpp"
 
 class Game
 {
@@ -39,6 +41,7 @@ public:
         engine->registerComponent<Camera>();
         engine->registerComponent<Collider>();
         engine->registerComponent<AABB>();
+        engine->registerComponent<Enemy>();
 
         auto renderSystem = engine->registerSystem<RenderSystem>();
         Signature signature;
@@ -76,12 +79,19 @@ public:
         signature.set(engine->getComponentId<Gravity>());
         engine->setSignature<GravitySystem>(signature);
         gravitySystem->init(*engine);
-        
-        auto globalGravity = Gravity { glm::vec3(0.0f, -9.81f, 0.0f) };
 
-        auto enemy = Enemy::create(engine, glm::vec3(3.0f, 0.0f, 0.0f));
+        auto enemySystem = engine->registerSystem<EnemySystem>();
+        signature.reset();
+        signature.set(engine->getComponentId<Enemy>());
+        signature.set(engine->getComponentId<Transform>());
+        engine->setSignature<EnemySystem>(signature);
+
+        auto globalGravity = Gravity{glm::vec3(0.0f, -9.81f, 0.0f)};
+
+        auto enemy = EnemyFactory::create(engine, glm::vec3(3.0f, 0.0f, 0.0f));
 
         Entity player = engine->createEntity("player");
+        enemySystem->init(*engine, player);
         auto playerTransform = Transform{glm::vec3(0.0f, 3.0f, 0.0f),
                                          glm::vec3(0.0f),
                                          glm::vec3(0.0f),
@@ -110,12 +120,13 @@ public:
         auto wallTransform = Transform{glm::vec3(0.0f, 0.0f, 0.0f),
                                        glm::vec3(0.0f),
                                        glm::vec3(0.0f),
-                                       {0.0f, -90.0f, 0.0f},
+                                       {-90.0f, 0.0f, 0.0f},
                                        glm::vec3(1.0f)};
         engine->addComponent(wall, wallTransform);
         Renderable wallRenderable;
         WorldMesh mesh;
-        mesh.shaderId = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
+        auto wallMat = new Material("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
+        mesh.material = wallMat;
         mesh.vertices = {
             {{-4.0f, 0.0f, -4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, -4.0f}},
             {{-4.0f, 0.0f, 4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, 4.0f}},
@@ -133,7 +144,6 @@ public:
         engine->addComponent(wall, wallCollider);
         engine->addComponent(wall, wallAABB);
 
-
         while (true)
         {
             float currentFrame = engine->getTime();
@@ -141,6 +151,7 @@ public:
             if (engine->startFrame() == -1)
                 break;
 
+            enemySystem->update(deltaTime);
             gravitySystem->update(deltaTime);
             cameraSystem->update(deltaTime);
             colliderSystem->update(deltaTime);

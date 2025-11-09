@@ -103,10 +103,10 @@ unsigned int OpenGLRenderer::loadShader(const char *vertexPath, const char *frag
     return shader.ID;
 }
 
-void OpenGLRenderer::useShader(unsigned int shaderId)
+void OpenGLRenderer::useMaterial(Material* mat)
 {
-    glUseProgram(shaderId);
-    activeShader = shaderId;
+    glUseProgram(mat->m_shader->ID);
+    activeMaterial = mat;
 }
 
 void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
@@ -168,8 +168,11 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     assert(iter != meshes.end() && "Mesh not found, did you upload it?");
     auto mesh = iter->second;
 
-    useShader(cmesh->shaderId);
-    this->updateShaderMatrices();
+    useMaterial(cmesh->material);
+
+    activeMaterial->set("view", view);
+    activeMaterial->set("projection", projection);
+    activeMaterial->set("model", model);
 
 
     // bind appropriate textures
@@ -183,7 +186,7 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
         // now set the sampler to the correct texture unit
-        glUniform1i(glGetUniformLocation(cmesh->shaderId, "myTexture"), i);
+        cmesh->material->set("myTexture", i);
     }
 
 
@@ -194,17 +197,6 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
 
     // always good practice to set everything back to defaults once configured.
     glActiveTexture(GL_TEXTURE0);
-}
-
-void OpenGLRenderer::updateShaderMatrices() {
-    unsigned int viewLoc = glGetUniformLocation(activeShader, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-
-    unsigned int projLoc = glGetUniformLocation(activeShader, "projection");
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
-
-    unsigned int modelLoc = glGetUniformLocation(activeShader, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
 }
 
 void OpenGLRenderer::setViewMatrix(glm::mat4 view)

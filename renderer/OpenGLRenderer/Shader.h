@@ -2,28 +2,35 @@
 
 #include <glad/glad.h> // include glad to get all the required OpenGL headers
 #include <glm/glm.hpp>
-  
+
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <iostream>
-  
+
+struct UniformInfo
+{
+    GLint location;
+    GLenum type;
+    GLint size;
+};
 
 class Shader
 {
 public:
     // the program ID
     unsigned int ID;
-  
+
     // constructor reads and builds the shader
-    Shader(const char* vertexPath, const char* fragmentPath) {
+    Shader(const char *vertexPath, const char *fragmentPath)
+    {
         std::string vertexCode;
         std::string fragmentCode;
         std::ifstream vShaderFile;
         std::ifstream fShaderFile;
 
-        vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-        fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+        vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         try
         {
             vShaderFile.open(vertexPath);
@@ -39,12 +46,12 @@ public:
             vertexCode = vShaderStream.str();
             fragmentCode = fShaderStream.str();
         }
-        catch(const std::exception& e)
+        catch (const std::exception &e)
         {
             std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ" << std::endl;
         }
-        const char* vShaderCode = vertexCode.c_str();
-        const char* fShaderCode = fragmentCode.c_str();
+        const char *vShaderCode = vertexCode.c_str();
+        const char *fShaderCode = fragmentCode.c_str();
 
         unsigned int vertex, fragment;
         int success;
@@ -54,18 +61,22 @@ public:
         glShaderSource(vertex, 1, &vShaderCode, NULL);
         glCompileShader(vertex);
         glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-        if(!success) {
+        if (!success)
+        {
             glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+            std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                      << infoLog << std::endl;
         }
 
         fragment = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragment, 1, &fShaderCode, NULL);
         glCompileShader(fragment);
         glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
-        if(!success) {
+        if (!success)
+        {
             glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+            std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                      << infoLog << std::endl;
         }
 
         ID = glCreateProgram();
@@ -73,38 +84,48 @@ public:
         glAttachShader(ID, fragment);
         glLinkProgram(ID);
         glGetProgramiv(ID, GL_LINK_STATUS, &success);
-        if(!success) {
+        if (!success)
+        {
             glGetProgramInfoLog(ID, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+            std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+                      << infoLog << std::endl;
         }
-        
+
         glDeleteShader(vertex);
         glDeleteShader(fragment);
 
+        loadUniformData();
     }
     // use/activate the shader
-    void use() {
+    void use()
+    {
         glUseProgram(ID);
     }
     // utility uniform functions
-    void setBool(const std::string &name, bool value) const {
+    void setBool(const std::string &name, bool value) const
+    {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
     }
-    void setInt(const std::string &name, int value) const {
+    void setInt(const std::string &name, int value) const
+    {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
     }
-    void setFloat(const std::string &name, float value) const {
+    void setFloat(const std::string &name, float value) const
+    {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
     }
 
-    void set4Float(const std::string &name, float v1, float v2, float v3, float v4) const {
+    void set4Float(const std::string &name, float v1, float v2, float v3, float v4) const
+    {
         glUniform4f(glGetUniformLocation(ID, name.c_str()), v1, v2, v3, v4);
     }
 
-    void setVec3(const std::string &name, float v1, float v2, float v3) const {
+    void setVec3(const std::string &name, float v1, float v2, float v3) const
+    {
         glUniform3f(glGetUniformLocation(ID, name.c_str()), v1, v2, v3);
     }
-    void setVec3(const std::string &name, glm::vec3 vec) const {
+    void setVec3(const std::string &name, glm::vec3 vec) const
+    {
         glUniform3f(glGetUniformLocation(ID, name.c_str()), vec.x, vec.y, vec.z);
     }
     void setMat4(const std::string &name, const glm::mat4 &mat) const
@@ -112,4 +133,37 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
+    std::unordered_map<std::string, UniformInfo> uniformInfoMap;
+
+private:
+    void loadUniformData()
+    {
+        GLint i;
+        GLint count;
+
+        GLint size;  // size of the variable
+        GLenum type; // type of the variable (float, vec3 or mat4, etc)
+
+        const GLsizei bufSize = 16; // maximum name length
+        GLchar nameBuf[bufSize];    // variable name in GLSL
+        GLsizei length;             // name length
+
+        glGetProgramiv(ID, GL_ACTIVE_UNIFORMS, &count);
+        printf("Active Uniforms: %d\n", count);
+
+        for (i = 0; i < count; i++)
+        {
+            glGetActiveUniform(ID, (GLuint)i, bufSize, &length, &size, &type, nameBuf);
+
+            std::string name(nameBuf, length);
+            GLint location = glGetUniformLocation(ID, name.c_str());
+
+            printf("Uniform #%d Type: %u Name: %s\n", i, type, name.c_str());
+
+            uniformInfoMap[name] = {
+                location,
+                type,
+                size};
+        }
+    }
 };

@@ -13,7 +13,7 @@ class OpenGLRenderer : public Renderer
 private:
     GLFWwindow *window;
     static bool initialized;
-    unsigned int activeShader = 0;
+    Material* activeMaterial = nullptr;
 
     std::function<void(KeyCode, KeyAction)> engineKeyCallback = nullptr;
     std::function<void(double, double)> engineMouseCallback = nullptr;
@@ -26,7 +26,7 @@ private:
     static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
     void uploadMesh(WorldMesh *cmesh) override;
-    void useShader(unsigned int shaderId);
+    void useMaterial(Material* mat);
 
     void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
     static void dispatchKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
