@@ -1,10 +1,12 @@
 #pragma once
 #include "Shader.h"
+#include "Material.h"
 
 class Material
 {
 public:
     Shader *m_shader;
+    unsigned int m_textureId;
 
     Material(const char* vertexSource, const char* fragmentSource)
     {

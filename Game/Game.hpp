@@ -126,6 +126,7 @@ public:
         Renderable wallRenderable;
         WorldMesh mesh;
         auto wallMat = new Material("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
+        wallMat->m_textureId = stoneTexId;
         mesh.material = wallMat;
         mesh.vertices = {
             {{-4.0f, 0.0f, -4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, -4.0f}},
@@ -135,7 +136,6 @@ public:
         };
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = "wallMesh";
-        mesh.textures.push_back(stoneTexture);
         wallRenderable.meshes.push_back(mesh);
         engine->addComponent(wall, wallRenderable);
 

@@ -175,20 +175,12 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     activeMaterial->set("model", model);
     activeMaterial->set("color", glm::vec4(1.0, 1.0, 0.0, 1.0));
 
-
-    // bind appropriate textures
-    unsigned int diffuseNr = 1;
-    unsigned int specularNr = 1;
-    unsigned int normalNr = 1;
-    unsigned int heightNr = 1;
-    for (unsigned int i = 0; i < cmesh->textures.size(); i++)
-    {
-        // bind the texture
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
-        // now set the sampler to the correct texture unit
-        cmesh->material->set("myTexture", i);
-    }
+    // bind the texture
+    unsigned int textureUnit = 0;
+    glActiveTexture(textureUnit);
+    glBindTexture(GL_TEXTURE_2D, cmesh->material->m_textureId);
+    // now set the sampler to the correct texture unit
+    cmesh->material->set("myTexture", textureUnit);
 
 
     // draw mesh

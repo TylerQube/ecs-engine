@@ -46,6 +46,7 @@ struct EnemyFactory
         Renderable wallRenderable;
         WorldMesh mesh;
         auto mat = new Material("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
+        mat->m_textureId = enemyTex.id;
         mesh.material = mat;
         mesh.vertices = {
             {{-WIDTH / 2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -55,7 +56,6 @@ struct EnemyFactory
         };
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = "enemy" + std::to_string(enemy);
-        mesh.textures.push_back(enemyTex);
         wallRenderable.meshes.push_back(mesh);
         engine->addComponent(enemy, wallRenderable);
 
