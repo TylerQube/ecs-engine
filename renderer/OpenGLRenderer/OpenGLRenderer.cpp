@@ -173,6 +173,7 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
     activeMaterial->set("view", view);
     activeMaterial->set("projection", projection);
     activeMaterial->set("model", model);
+    activeMaterial->set("color", glm::vec4(1.0, 1.0, 0.0, 1.0));
 
 
     // bind appropriate textures
