@@ -11,6 +11,7 @@
 #include "stb/stb_image.h"
 #include <Engine/Types.hpp>
 #include <Engine/Component/Transform.h>
+#include "Model.h"
 
 void OpenGLRenderer::init()
 {
@@ -194,6 +195,11 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
 
     // always good practice to set everything back to defaults once configured.
     glActiveTexture(GL_TEXTURE0);
+}
+
+void OpenGLRenderer::drawModel(Model* model) {
+    for (unsigned int i = 0; i < model->meshes.size(); i++)
+        renderMesh(&model->meshes[i]);
 }
 
 void OpenGLRenderer::updateShaderMatrices() {
