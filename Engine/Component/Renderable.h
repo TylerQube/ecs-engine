@@ -17,6 +17,9 @@ struct Vertex
     glm::vec3 Normal;
     // texCoords
     glm::vec2 TexCoords;
+
+    glm::vec3 Tangent;
+    glm::vec3 Bitangent;
 };
 
 struct Texture

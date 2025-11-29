@@ -162,7 +162,7 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
     meshes[wMesh->name] = mesh;
 }
 
-void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
+void OpenGLRenderer::renderMesh(EngineMesh *cmesh)
 {
     uploadMesh(cmesh);
     auto iter = meshes.find(cmesh->name);
