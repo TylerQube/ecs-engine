@@ -25,6 +25,11 @@ target_include_directories(OpenGLRenderer PRIVATE
 target_link_libraries(OpenGLRenderer PRIVATE
     ${PROJECT_SOURCE_DIR}/dependencies/lib/libglfw.3.3.dylib
 )
+
+target_link_libraries(OpenGLRenderer PRIVATE
+    ${PROJECT_SOURCE_DIR}/dependencies/lib/libassimp.dylib
+)
+
 # ============================= #
 
 # Find macOS frameworks

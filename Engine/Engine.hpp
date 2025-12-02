@@ -100,9 +100,9 @@ public:
         renderer->uploadMesh(wMesh);
     }
 
-    void renderMesh(WorldMesh *wMesh)
+    void renderMesh(WorldMesh *wMesh, unsigned int shaderId)
     {
-        renderer->renderMesh(wMesh);
+        renderer->renderMesh(wMesh, shaderId);
     }
 
     void setViewMatrix(glm::mat4 view)

@@ -45,8 +45,7 @@ public:
     GLFWwindow *get_window();
 
     unsigned int loadShader(const char *vertexPath, const char *fragmentPath) override;
-    void renderMesh(WorldMesh *mesh) override;
-    void OpenGLRenderer::drawModel(Model* model);
+    void renderMesh(WorldMesh *mesh, unsigned int shaderId) override;
 
     void setViewMatrix(glm::mat4 view) override;
     void setProjectionMatrix(glm::mat4 projection) override;

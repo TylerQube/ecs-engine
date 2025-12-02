@@ -20,6 +20,11 @@ struct Vertex
 
     glm::vec3 Tangent;
     glm::vec3 Bitangent;
+
+	//bone indexes which will influence this vertex
+	int m_BoneIDs[MAX_BONE_INFLUENCE];
+	//weights from each bone
+	float m_Weights[MAX_BONE_INFLUENCE];
 };
 
 struct Texture
@@ -31,7 +36,6 @@ struct Texture
 
 struct WorldMesh
 {
-    unsigned int shaderId;
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture> textures;
@@ -41,5 +45,6 @@ struct WorldMesh
 
 struct Renderable
 {
+    unsigned int shaderId;
     std::vector<WorldMesh> meshes;
 };

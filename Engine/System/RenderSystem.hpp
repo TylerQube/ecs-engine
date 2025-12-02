@@ -27,7 +27,7 @@ public:
 
                 engine->setModelMatrix(model);
 
-                engine->renderMesh(&mesh);
+                engine->renderMesh(&mesh, renderable.shaderId);
             }
         }
     }

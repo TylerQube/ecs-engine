@@ -11,7 +11,6 @@
 #include "stb/stb_image.h"
 #include <Engine/Types.hpp>
 #include <Engine/Component/Transform.h>
-#include "Model.h"
 
 void OpenGLRenderer::init()
 {
@@ -145,31 +144,31 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, TexCoords));
     // vertex tangent
-    // glEnableVertexAttribArray(3);
-    // glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Tangent));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Tangent));
     // vertex bitangent
-    // glEnableVertexAttribArray(4);
-    // glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Bitangent));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Bitangent));
     // ids
-    // glEnableVertexAttribArray(5);
-    // glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
+    glEnableVertexAttribArray(5);
+    glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
 
     // weights
-    // glEnableVertexAttribArray(6);
-    // glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
     glBindVertexArray(0);
 
     meshes[wMesh->name] = mesh;
 }
 
-void OpenGLRenderer::renderMesh(EngineMesh *cmesh)
+void OpenGLRenderer::renderMesh(WorldMesh *cmesh, unsigned int shaderId)
 {
     uploadMesh(cmesh);
     auto iter = meshes.find(cmesh->name);
     assert(iter != meshes.end() && "Mesh not found, did you upload it?");
     auto mesh = iter->second;
 
-    useShader(cmesh->shaderId);
+    useShader(shaderId);
     this->updateShaderMatrices();
 
 
@@ -184,7 +183,7 @@ void OpenGLRenderer::renderMesh(EngineMesh *cmesh)
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
         // now set the sampler to the correct texture unit
-        glUniform1i(glGetUniformLocation(cmesh->shaderId, "myTexture"), i);
+        glUniform1i(glGetUniformLocation(shaderId, "myTexture"), i);
     }
 
 
@@ -195,11 +194,6 @@ void OpenGLRenderer::renderMesh(EngineMesh *cmesh)
 
     // always good practice to set everything back to defaults once configured.
     glActiveTexture(GL_TEXTURE0);
-}
-
-void OpenGLRenderer::drawModel(Model* model) {
-    for (unsigned int i = 0; i < model->meshes.size(); i++)
-        renderMesh(&model->meshes[i]);
 }
 
 void OpenGLRenderer::updateShaderMatrices() {

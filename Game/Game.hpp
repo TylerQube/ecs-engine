@@ -115,7 +115,8 @@ public:
         engine->addComponent(wall, wallTransform);
         Renderable wallRenderable;
         WorldMesh mesh;
-        mesh.shaderId = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
+        unsigned int shader = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
+        wallRenderable.shaderId = shader;
         mesh.vertices = {
             {{-4.0f, 0.0f, -4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, -4.0f}},
             {{-4.0f, 0.0f, 4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, 4.0f}},

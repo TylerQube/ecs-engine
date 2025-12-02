@@ -4,10 +4,13 @@
 #include <Engine/Engine.hpp>
 #include <Engine/Component/Transform.h>
 #include <Engine/Component/Collider.h>
+#include <Engine/ModelLoader.h>
 
 const int HEALTH = 10;
 const int SPEED = 10;
 const std::string tag = "enemy";
+
+const std::string enemyModel = "resources/models/dancing_vampire.dae";
 
 const float WIDTH = 0.5;
 const float HEIGHT = 0.615;
@@ -24,7 +27,7 @@ struct Enemy
             .velocity = glm::vec3(0.0f),
             .acceleration = glm::vec3(0.0f),
             .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = glm::vec3(1.0f)};
+            .scale = glm::vec3(0.01f)};
 
         engine->addComponent(enemy, tf);
 
@@ -34,20 +37,20 @@ struct Enemy
             "texture_diffuse",
             "./textures/stone_tile.jpg"};
 
-        Renderable wallRenderable;
-        WorldMesh mesh;
-        mesh.shaderId = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
-        mesh.vertices = {
-            {{-WIDTH / 2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{WIDTH / 2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-            {{-WIDTH / 2.0f, HEIGHT, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-            {{WIDTH / 2.0f, HEIGHT, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-        };
-        mesh.indices = {0, 1, 2, 1, 3, 2};
-        mesh.name = "enemy" + std::to_string(enemy);
-        mesh.textures.push_back(enemyTex);
-        wallRenderable.meshes.push_back(mesh);
-        engine->addComponent(enemy, wallRenderable);
+        unsigned int shaderId = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
+        auto renderable = ModelLoader::loadModel(enemyModel, shaderId);
+        // WorldMesh mesh;
+        // mesh.vertices = {
+        //     {{-WIDTH / 2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+        //     {{WIDTH / 2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+        //     {{-WIDTH / 2.0f, HEIGHT, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+        //     {{WIDTH / 2.0f, HEIGHT, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+        // };
+        // mesh.indices = {0, 1, 2, 1, 3, 2};
+        // mesh.name = "enemy" + std::to_string(enemy);
+        // mesh.textures.push_back(enemyTex);
+        // renderable.meshes.push_back(mesh);
+        engine->addComponent(enemy, renderable);
 
         auto collider = Collider{};
         auto aabb = AABB({glm::vec3(-WIDTH / 2.0f, 0.0f, -aabbPadding), glm::vec3(WIDTH / 2.0f, HEIGHT, aabbPadding)});
