@@ -27,7 +27,7 @@ struct Enemy
             .velocity = glm::vec3(0.0f),
             .acceleration = glm::vec3(0.0f),
             .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = glm::vec3(0.01f)};
+            .scale = glm::vec3(0.003f)};
 
         engine->addComponent(enemy, tf);
 

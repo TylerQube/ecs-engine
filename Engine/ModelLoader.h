@@ -16,7 +16,7 @@
 #include <vector>
 using namespace std;
 
-unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
+unsigned int TextureFromFile(const char *path);
 
 class ModelLoader
 {
@@ -175,7 +175,8 @@ public:
             if (!skip)
             { // if texture hasn't been loaded already, load it
                 Texture texture;
-                texture.id = TextureFromFile(str.C_Str(), directory);
+                std::cout << directory << std::endl;
+                texture.id = TextureFromFile(str.C_Str());
                 texture.type = typeName;
                 texture.path = str.C_Str();
                 textures.push_back(texture);
@@ -186,10 +187,10 @@ public:
     }
 };
 
-unsigned int TextureFromFile(const char *path, const string &directory, bool gamma)
+unsigned int TextureFromFile(const char *path)
 {
     string filename = string(path);
-    filename = directory + '/' + filename;
+    std::cout << filename << std::endl;
 
     unsigned int textureID;
     glGenTextures(1, &textureID);

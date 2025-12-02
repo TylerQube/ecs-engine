@@ -25,6 +25,8 @@ public:
                 model = glm::rotate(model, glm::radians(transform.rotation.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
                 model = glm::rotate(model, glm::radians(transform.rotation.roll), glm::vec3(0.0f, 0.0f, 1.0f));
 
+                model = glm::scale(model, transform.scale);
+
                 engine->setModelMatrix(model);
 
                 engine->renderMesh(&mesh, renderable.shaderId);
