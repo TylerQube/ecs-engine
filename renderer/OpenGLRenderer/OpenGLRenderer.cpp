@@ -25,8 +25,6 @@ void OpenGLRenderer::init()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    stbi_set_flip_vertically_on_load(true);
-
     initialized = true;
 }
 
@@ -60,8 +58,6 @@ OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned i
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    stbi_set_flip_vertically_on_load(true);
 
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, dispatchKeyCallback);
@@ -111,12 +107,12 @@ void OpenGLRenderer::useShader(unsigned int shaderId)
 
 void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
 {
-    // auto iter = meshes.find(wMesh->getType());
-    // if (iter != meshes.end())
-    // {
-    //     // already loaded
-    //     return;
-    // }
+    auto iter = meshes.find(wMesh->name);
+    if (iter != meshes.end())
+    {
+        // already loaded
+        return;
+    }
 
     auto mesh = std::make_shared<RenderMesh>();
     mesh->index_count = wMesh->indices.size();
@@ -150,12 +146,12 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
     glEnableVertexAttribArray(4);
     glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Bitangent));
     // ids
-    glEnableVertexAttribArray(5);
-    glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
+    // glEnableVertexAttribArray(5);
+    // glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
 
     // weights
-    glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
+    // glEnableVertexAttribArray(6);
+    // glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
     glBindVertexArray(0);
 
     meshes[wMesh->name] = mesh;
@@ -168,6 +164,11 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh, unsigned int shaderId)
     assert(iter != meshes.end() && "Mesh not found, did you upload it?");
     auto mesh = iter->second;
 
+    std::cout << "Rendering mesh: " << cmesh->name 
+          << " vertices: " << cmesh->vertices.size()
+          << " indices: " << cmesh->indices.size() 
+          << " textures: " << cmesh->textures.size() << std::endl;
+
     useShader(shaderId);
     this->updateShaderMatrices();
 
@@ -179,11 +180,23 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh, unsigned int shaderId)
     unsigned int heightNr = 1;
     for (unsigned int i = 0; i < cmesh->textures.size(); i++)
     {
-        // bind the texture
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
+        glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
+        // retrieve texture number (the N in diffuse_textureN)
+        std::string number;
+        std::string name = cmesh->textures[i].type;
+        if(name == "texture_diffuse")
+            number = std::to_string(diffuseNr++);
+        else if(name == "texture_specular")
+            number = std::to_string(specularNr++); // transfer unsigned int to string
+        else if(name == "texture_normal")
+            number = std::to_string(normalNr++); // transfer unsigned int to string
+            else if(name == "texture_height")
+            number = std::to_string(heightNr++); // transfer unsigned int to string
+
         // now set the sampler to the correct texture unit
-        glUniform1i(glGetUniformLocation(shaderId, "myTexture"), i);
+        glUniform1i(glGetUniformLocation(shaderId, (name + number).c_str()), i);
+        // and finally bind the texture
+        glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
     }
 
 

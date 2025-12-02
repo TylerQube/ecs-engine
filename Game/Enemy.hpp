@@ -31,13 +31,7 @@ struct Enemy
 
         engine->addComponent(enemy, tf);
 
-        unsigned int enemySprite = engine->loadTextureFromFile("./textures/enemy.png");
-        auto enemyTex = Texture{
-            enemySprite,
-            "texture_diffuse",
-            "./textures/stone_tile.jpg"};
-
-        unsigned int shaderId = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
+        unsigned int shaderId = engine->loadShader("shaders/model_loading.vs", "shaders/model_loading.fs");
         auto renderable = ModelLoader::loadModel(enemyModel, shaderId);
         // WorldMesh mesh;
         // mesh.vertices = {
