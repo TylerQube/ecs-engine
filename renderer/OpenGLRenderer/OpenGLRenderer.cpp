@@ -164,11 +164,6 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh, unsigned int shaderId)
     assert(iter != meshes.end() && "Mesh not found, did you upload it?");
     auto mesh = iter->second;
 
-    std::cout << "Rendering mesh: " << cmesh->name 
-          << " vertices: " << cmesh->vertices.size()
-          << " indices: " << cmesh->indices.size() 
-          << " textures: " << cmesh->textures.size() << std::endl;
-
     useShader(shaderId);
     this->updateShaderMatrices();
 
