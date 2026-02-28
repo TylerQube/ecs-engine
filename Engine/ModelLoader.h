@@ -25,6 +25,13 @@ public:
     vector<Texture> textures_loaded; // stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
     vector<WorldMesh> meshes;
 
+    static void SetDefaultVertexBoneData(Vertex &vertex) {
+        for(int i = 0; i < MAX_BONE_INFLUENCE; i++) {
+            vertex.m_BoneIDs[i] = -1;
+            vertex.m_Weights[i] = 0.0f;
+        }
+    }
+
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
     static Renderable loadModel(string const &path, unsigned int shaderId) {
         // read file via ASSIMP
@@ -78,6 +85,7 @@ public:
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
         {
             Vertex vertex = {};
+            SetDefaultVertexBoneData(vertex);
             glm::vec3 vector; // we declare a placeholder vector since assimp uses its own vector class that doesn't directly convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
             // positions
             vector.x = mesh->mVertices[i].x;
@@ -114,6 +122,8 @@ public:
             }
             else
                 vertex.TexCoords = glm::vec2(0.0f, 0.0f);
+
+            
 
             vertices.push_back(vertex);
         }
