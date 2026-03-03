@@ -1,26 +1,29 @@
 #include <string>
+#include <map>
 #include <glm/glm.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include<AssimpGLMHelpers.h>
-#include <Bone.hAssimpNodeData>
-#include <map>
+#include <AssimpGLMHelpers.h>
+#include <Renderable.h>
 
-struct AssimpNodeData {
+struct AssimpNodeData
+{
     glm::mat4 transformation;
     std::string name;
     int childrenCount;
     std::vector<AssimpNodeData> children;
 };
 
-class Animation {
+class Animation
+{
 public:
     Animation() = default;
 
-    Animation(const std::string& animationPath, Model* model) {
+    Animation(const std::string &animationPath, Model *model)
+    {
         Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
+        const aiScene *scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
         assert(scene && scene->mRootNode);
 
         auto anim = scene->mAnimations[0];
@@ -32,28 +35,50 @@ public:
 
     ~Animation() {}
 
-    Bone* FindBone(const std::string& name)
+    Bone *FindBone(const std::string &name)
     {
-        auto iter = std::find_if(m_Bones.begin(), m_Bones.end(),
-            [&](const Bone& Bone)
-            {
-                return Bone.GetBoneName() == name;
-            }
-        );
-        if (iter == m_Bones.end()) return nullptr;
-        else return &(*iter);
+        auto iter = std::find_if(bones.begin(), bones.end(),
+                                 [&](const Bone &Bone)
+                                 {
+                                     return Bone.GetBoneName() == name;
+                                 });
+        if (iter == bones.end())
+            return nullptr;
+        else
+            return &(*iter);
     }
 
-	
+    void ReadMissingBones(const aiAnimation* animation, Model& model)
+    {
+        int size = animation->mNumChannels;
+
+        auto& modelBoneInfoMap = model.boneInfo;//getting m_BoneInfoMap from Model class
+        int& boneCount = model.boneCount; //getting the m_BoneCounter from Model class
+
+        //reading channels(bones engaged in an animation and their keyframes)
+        for (int i = 0; i < size; i++)
+        {
+            auto channel = animation->mChannels[i];
+            std::string boneName = channel->mNodeName.data;
+
+            if (modelBoneInfoMap.find(boneName) == modelBoneInfoMap.end())
+            {
+                modelBoneInfoMap[boneName].id = boneCount;
+                boneCount++;
+            }
+            bones.push_back(Bone(channel->mNodeName.data,
+                modelBoneInfoMap[channel->mNodeName.data].id, channel));
+        }
+
+        boneInfoMap = modelBoneInfoMap;
+    }
+
     inline float GetTicksPerSecond() { return ticksPerSecond; }
-
-    inline float GetDuration() { return duration;}
-
-    inline const AssimpNodeData& GetRootNode() { return rootNode; }
-
-    inline const std::map<std::string,BoneInfo>& GetBoneIDMap() 
-    { 
-        return m_BoneInfoMap;
+    inline float GetDuration() { return duration; }
+    inline const AssimpNodeData &GetRootNode() { return rootNode; }
+    inline const std::map<std::string, BoneInfo> &GetBoneIDMap()
+    {
+        return boneInfoMap;
     }
 
 private:
@@ -61,17 +86,22 @@ private:
     float duration;
     int ticksPerSecond;
 
-    void ReadHierarchyData(AssimpNodeData& dst, const aiNode* src) {
+    std::vector<Bone> bones;
+    std::map<std::string, BoneInfo> boneInfoMap;
+
+    void ReadHierarchyData(AssimpNodeData &dst, const aiNode *src)
+    {
         assert(src);
 
         dst.name = src->mName.data;
         dst.transformation = AssimpGLMHelpers::ConvertMatrixToGLMFormat(src->mTransformation);
         dst.childrenCount = src->mNumChildren;
 
-        for(int i = 0; i < src->mNumChildren; i++) {
+        for (int i = 0; i < src->mNumChildren; i++)
+        {
             AssimpNodeData newData;
             ReadHierarchyData(newData, src->mChildren[i]);
             dst.children.push_back(newData);
         }
     }
-}
+};

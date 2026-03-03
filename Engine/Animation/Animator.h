@@ -1,12 +1,17 @@
+/**
+ * Referenced from LearnOpenGL: Skeletal Animation
+ * https://learnopengl.com/Guest-Articles/2020/Skeletal-Animation
+ */
+
 #include "Animation.h"
 #include "Bone.h"
 class Animator
 {	
 public:
-    Animator::Animator(Animation* Animation)
+    Animator::Animator(Animation* animation)
     {
         m_CurrentTime = 0.0;
-        m_CurrentAnimation = currentAnimation;
+        m_CurrentAnimation = animation;
 
         m_FinalBoneMatrices.reserve(100);
 

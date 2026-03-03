@@ -50,6 +50,8 @@ private:
     int id;
 
 public:
+
+    std::string GetBoneName() const { return name; }
     // read in keyframes from assimp
     Bone(const std::string &name, int ID, const aiNodeAnim *channel)
         : name(name), id(ID), localTransform(1.0f)
