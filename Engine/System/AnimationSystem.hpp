@@ -1,6 +1,6 @@
 #include "System.h"
 
-class AnimationSystem : System {
+class AnimationSystem : public System {
   public:
     Engine *engine;
     void init(Engine &c) {

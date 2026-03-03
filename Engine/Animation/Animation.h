@@ -30,7 +30,7 @@ public:
         duration = anim->mDuration;
         ticksPerSecond = anim->mTicksPerSecond;
         ReadHierarchyData(rootNode, scene->mRootNode);
-        // ReadMissingBones(anim, *model); // implement if bones missing
+        ReadMissingBones(anim, *model);
     }
 
     ~Animation() {}

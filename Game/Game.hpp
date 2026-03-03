@@ -82,13 +82,13 @@ public:
         engine->setSignature<GravitySystem>(signature);
         gravitySystem->init(*engine);
 
-        // auto animSystem = engine->registerSystem<AnimationSystem>();
-        // signature.reset();
-        // signature.set(engine->getComponentId<Model>());
-        // signature.set(engine->getComponentId<Skeleton>());
-        // signature.set(engine->getComponentId<AnimationComponent>());
-        // engine->setSignature<AnimationSystem>(signature);
-        // animSystem->init(*engine);
+        auto animSystem = engine->registerSystem<AnimationSystem>();
+        signature.reset();
+        signature.set(engine->getComponentId<Model>());
+        signature.set(engine->getComponentId<Skeleton>());
+        signature.set(engine->getComponentId<AnimationComponent>());
+        engine->setSignature<AnimationSystem>(signature);
+        animSystem->init(*engine);
         
         auto globalGravity = Gravity { glm::vec3(0.0f, -9.81f, 0.0f) };
 
