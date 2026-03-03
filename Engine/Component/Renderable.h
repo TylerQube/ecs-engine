@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <Bone.h>
 
 #define MAX_BONE_INFLUENCE 4
 
@@ -43,8 +44,20 @@ struct WorldMesh
     std::string name;
 };
 
+
 struct Renderable
 {
     unsigned int shaderId;
     std::vector<WorldMesh> meshes;
+};
+
+struct Model
+{
+    unsigned int shaderId;
+    std::vector<WorldMesh> meshes;
+    std::vector<Texture> textures;
+    std::string directory;
+
+    std::map<std::string, BoneInfo> boneInfo;
+    int boneCount;
 };

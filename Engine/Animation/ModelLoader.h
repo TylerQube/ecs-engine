@@ -14,7 +14,10 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <Renderable.h>
 using namespace std;
+
+#define MAX_BONE_WEIGHTS 0x7fffffff
 
 unsigned int TextureFromFile(const char *path);
 
@@ -25,15 +28,18 @@ public:
     vector<Texture> textures_loaded; // stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
     vector<WorldMesh> meshes;
 
-    static void SetDefaultVertexBoneData(Vertex &vertex) {
-        for(int i = 0; i < MAX_BONE_INFLUENCE; i++) {
+    static void SetDefaultVertexBoneData(Vertex &vertex)
+    {
+        for (int i = 0; i < MAX_BONE_INFLUENCE; i++)
+        {
             vertex.m_BoneIDs[i] = -1;
             vertex.m_Weights[i] = 0.0f;
         }
     }
 
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
-    static Renderable loadModel(string const &path, unsigned int shaderId) {
+    static Model loadModel(string const &path, unsigned int shaderId)
+    {
         // read file via ASSIMP
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -41,23 +47,23 @@ public:
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
         {
             cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << endl;
-            return Renderable{};
+            return Model{};
         }
         // retrieve the directory path of the filepath
         std::string directory = path.substr(0, path.find_last_of('/'));
 
         std::vector<WorldMesh> meshes;
-        processNode(scene->mRootNode, scene, directory, meshes);
+        std::map<string, BoneInfo> boneInfoMap;
         // process ASSIMP's root node recursively
+        processNode(scene->mRootNode, scene, directory, meshes, boneInfoMap);
 
-        return Renderable{
-            .meshes=meshes,
-            .shaderId=shaderId
-        };
+        return Model{
+            .meshes = meshes,
+            .shaderId = shaderId};
     }
 
     // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-    static void processNode(aiNode *node, const aiScene *scene, std::string& directory, std::vector<WorldMesh>& meshes)
+    static void processNode(aiNode *node, const aiScene *scene, std::string &directory, std::vector<WorldMesh> &meshes, std::map<string, BoneInfo>& boneInfo)
     {
         // process each mesh located at the current node
         for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -65,16 +71,16 @@ public:
             // the node object only contains indices to index the actual objects in the scene.
             // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
             aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-            meshes.push_back(processMesh(mesh, scene, directory));
+            meshes.push_back(processMesh(mesh, scene, directory, boneInfo));
         }
         // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
         for (unsigned int i = 0; i < node->mNumChildren; i++)
         {
-            processNode(node->mChildren[i], scene, directory, meshes);
+            processNode(node->mChildren[i], scene, directory, meshes, boneInfo);
         }
     }
 
-    static WorldMesh processMesh(aiMesh *mesh, const aiScene *scene, string& directory)
+    static WorldMesh processMesh(aiMesh *mesh, const aiScene *scene, string &directory, std::map<string, BoneInfo>& boneInfo)
     {
         // data to fill
         vector<Vertex> vertices;
@@ -123,8 +129,6 @@ public:
             else
                 vertex.TexCoords = glm::vec2(0.0f, 0.0f);
 
-            
-
             vertices.push_back(vertex);
         }
         // now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
@@ -157,13 +161,63 @@ public:
         std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height", directory);
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
+        ExtractBoneWeightForVertices(vertices, mesh, scene, boneInfo);
+
         // return a mesh object created from the extracted mesh data
         return WorldMesh{vertices, indices, textures};
     }
 
+    static void SetVertexBoneData(Vertex &vertex, int boneID, float weight)
+    {
+        for (int i = 0; i < MAX_BONE_WEIGHTS; ++i)
+        {
+            if (vertex.m_BoneIDs[i] < 0)
+            {
+                vertex.m_Weights[i] = weight;
+                vertex.m_BoneIDs[i] = boneID;
+                break;
+            }
+        }
+    }
+
+    static void ExtractBoneWeightForVertices(std::vector<Vertex> &vertices, aiMesh *mesh, const aiScene *scene, std::map<std::string, BoneInfo> &boneMap)
+    {
+        int boneCount = 0;
+        for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
+        {
+            int boneID = -1;
+            std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
+            if (boneMap.find(boneName) == boneMap.end())
+            {
+                BoneInfo newBoneInfo;
+                newBoneInfo.id = boneCount;
+                newBoneInfo.offset = AssimpGLMHelpers::ConvertMatrixToGLMFormat(
+                    mesh->mBones[boneIndex]->mOffsetMatrix);
+                boneMap[boneName] = newBoneInfo;
+                boneID = boneCount;
+                boneCount++;
+            }
+            else
+            {
+                boneID = boneMap[boneName].id;
+            }
+            assert(boneID != -1);
+            auto weights = mesh->mBones[boneIndex]->mWeights;
+            int numWeights = mesh->mBones[boneIndex]->mNumWeights;
+
+            for (int weightIndex = 0; weightIndex < numWeights; ++weightIndex)
+            {
+                int vertexId = weights[weightIndex].mVertexId;
+                float weight = weights[weightIndex].mWeight;
+                assert(vertexId <= vertices.size());
+                SetVertexBoneData(vertices[vertexId], boneID, weight);
+            }
+        }
+    }
+
     // checks all material textures of a given type and loads the textures if they're not loaded yet.
     // the required info is returned as a Texture struct.
-    static vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName, string& directory)
+    static vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName, string &directory)
     {
         vector<Texture> textures;
         vector<Texture> textures_loaded;

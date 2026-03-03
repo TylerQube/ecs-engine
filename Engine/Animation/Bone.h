@@ -12,6 +12,11 @@
  * https://learnopengl.com/Guest-Articles/2020/Skeletal-Animation
  */
 
+struct BoneInfo {
+    int id;
+    glm::mat4 offset; // model to bone-space
+};
+
 struct KeyPosition
 {
     glm::vec3 position;
