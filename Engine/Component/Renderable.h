@@ -5,7 +5,8 @@
 
 #include <string>
 #include <vector>
-#include <Bone.h>
+#include <map>
+#include <Engine/Animation/Bone.h>
 
 #define MAX_BONE_INFLUENCE 4
 
@@ -61,3 +62,7 @@ struct Model
     std::map<std::string, BoneInfo> boneInfo;
     int boneCount;
 };
+
+struct Skeleton {
+    std::vector<glm::mat4> finalBoneMatrices;
+}

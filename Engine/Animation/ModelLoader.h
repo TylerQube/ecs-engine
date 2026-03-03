@@ -14,7 +14,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
-#include <Renderable.h>
+#include <Engine/Component/Renderable.h>
 using namespace std;
 
 #define MAX_BONE_WEIGHTS 0x7fffffff

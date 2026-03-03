@@ -15,6 +15,8 @@
 #include "Engine/Types.hpp"
 
 #include "Enemy.hpp"
+#include <AnimationSystem.hpp>
+#include <Animation.h>
 
 class Game
 {
@@ -76,6 +78,14 @@ public:
         signature.set(engine->getComponentId<Gravity>());
         engine->setSignature<GravitySystem>(signature);
         gravitySystem->init(*engine);
+
+        auto animSystem = engine->registerSystem<AnimationSystem>();
+        signature.reset();
+        signature.set(engine->getComponentId<Model>());
+        signature.set(engine->getComponentId<Skeleton>());
+        signature.set(engine->getComponentId<AnimationComponent>());
+        engine->setSignature<AnimationSystem>(signature);
+
         
         auto globalGravity = Gravity { glm::vec3(0.0f, -9.81f, 0.0f) };
 

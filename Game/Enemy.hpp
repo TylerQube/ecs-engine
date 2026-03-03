@@ -4,7 +4,7 @@
 #include <Engine/Engine.hpp>
 #include <Engine/Component/Transform.h>
 #include <Engine/Component/Collider.h>
-#include <Engine/ModelLoader.h>
+#include <Engine/Animation/ModelLoader.h>
 
 const int HEALTH = 10;
 const int SPEED = 10;

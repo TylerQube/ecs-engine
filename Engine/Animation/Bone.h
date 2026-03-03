@@ -1,11 +1,12 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 #include <vector>
 #include <string>
 #include <assimp/anim.h>
-#include <AssimpGLMHelpers.h>
+#include <Engine/AssimpGLMHelpers.h>
 
 /**
  * Referenced from LearnOpenGL Skeletal Animation Article:
@@ -178,7 +179,7 @@ private:
 
     /*figures out which scaling keys to interpolate b/w and performs the interpolation 
     and returns the scale matrix*/
-    glm::mat4 Bone::InterpolateScale(float animationTime)
+    glm::mat4 InterpolateScale(float animationTime)
     {
         if (1 == numScales)
             return glm::scale(glm::mat4(1.0f), scales[0].scale);
