@@ -105,6 +105,31 @@ public:
         renderer->renderMesh(wMesh, shaderId);
     }
 
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::mat4 matrix)
+    {
+        renderer->setUniform(shaderId, name, matrix);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::vec3 vector)
+    {
+        renderer->setUniform(shaderId, name, vector);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::vec4 vector)
+    {
+        renderer->setUniform(shaderId, name, vector);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, float value)
+    {
+        renderer->setUniform(shaderId, name, value);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, int value)
+    {
+        renderer->setUniform(shaderId, name, value);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, unsigned int value)
+    {
+        renderer->setUniform(shaderId, name, value);
+    }
+
     void setViewMatrix(glm::mat4 view)
     {
         renderer->setViewMatrix(view);

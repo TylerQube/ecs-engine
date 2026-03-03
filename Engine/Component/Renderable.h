@@ -46,18 +46,10 @@ struct WorldMesh
 };
 
 
-struct Renderable
-{
-    unsigned int shaderId;
-    std::vector<WorldMesh> meshes;
-};
-
 struct Model
 {
     unsigned int shaderId;
     std::vector<WorldMesh> meshes;
-    std::vector<Texture> textures;
-    std::string directory;
 
     std::map<std::string, BoneInfo> boneInfo;
     int boneCount;
@@ -65,4 +57,4 @@ struct Model
 
 struct Skeleton {
     std::vector<glm::mat4> finalBoneMatrices;
-}
+};

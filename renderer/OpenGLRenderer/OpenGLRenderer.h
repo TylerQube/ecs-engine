@@ -51,6 +51,13 @@ public:
     void setProjectionMatrix(glm::mat4 projection) override;
     void setModelMatrix(glm::mat4 model) override;
 
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::mat4 matrix) override;
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::vec3 vector) override;
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::vec4 vector) override;
+    void setUniform(unsigned int shaderId, const std::string& name, float value) override;
+    void setUniform(unsigned int shaderId, const std::string& name, int value) override;
+    void setUniform(unsigned int shaderId, const std::string& name, unsigned int value) override;
+
     int beginFrame() override;
     void endFrame() override;
 

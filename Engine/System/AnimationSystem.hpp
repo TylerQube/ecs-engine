@@ -1,6 +1,7 @@
 #include <System.h>
 
 class AnimationSystem : System {
+  public:
     Engine *engine;
     void init(Engine &c) {
         this->engine = &c;
@@ -9,7 +10,8 @@ class AnimationSystem : System {
     void update(float dt) {
         for (Entity entity : entities) {
             auto anim = engine->getComponent<AnimationComponent>(entity);
-            if(!anim.currentAnimation) continue;
+            if (!anim.currentAnimation)
+                continue;
             auto skeleton = engine->getComponent<Skeleton>(entity);
 
             anim.currentTime += anim.currentAnimation->GetTicksPerSecond() * dt;
@@ -18,8 +20,9 @@ class AnimationSystem : System {
         }
     }
 
-private:
-    void calculateBoneTransform(AnimationComponent& anim, Skeleton& skeleton, const AssimpNodeData *node, glm::mat4 parentTransform) {
+  private:
+    void calculateBoneTransform(AnimationComponent &anim, Skeleton &skeleton, const AssimpNodeData *node,
+                                glm::mat4 parentTransform) {
         std::string nodeName = node->name;
         glm::mat4 nodeTransform = node->transformation;
 
@@ -42,5 +45,4 @@ private:
         for (int i = 0; i < node->childrenCount; i++)
             calculateBoneTransform(anim, skeleton, &node->children[i], globalTransformation);
     }
-
-}
+};

@@ -13,6 +13,13 @@ public:
     virtual void setProjectionMatrix(glm::mat4 projection) = 0;
     virtual void setModelMatrix(glm::mat4 model) = 0;
 
+    virtual void setUniform(unsigned int shaderId, const std::string& name, const glm::mat4 matrix) = 0;
+    virtual void setUniform(unsigned int shaderId, const std::string& name, const glm::vec3 vector) = 0;
+    virtual void setUniform(unsigned int shaderId, const std::string& name, const glm::vec4 vector) = 0;
+    virtual void setUniform(unsigned int shaderId, const std::string& name, float value) = 0;
+    virtual void setUniform(unsigned int shaderId, const std::string& name, int value) = 0;
+    virtual void setUniform(unsigned int shaderId, const std::string& name, unsigned int value) = 0;
+
     virtual unsigned int loadShader(const char *vertexPath, const char *fragmentPath) = 0;
 
     float getAspectRatio() { return (float)WIDTH / (float)HEIGHT; }
