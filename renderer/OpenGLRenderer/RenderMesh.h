@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/Component/Renderable.h"
+#include "Engine/Component/Model.h"
 
 struct RenderMesh {
     unsigned int VBO;

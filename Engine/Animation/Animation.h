@@ -4,8 +4,8 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <AssimpGLMHelpers.h>
-#include <Renderable.h>
+#include <Engine/AssimpGLMHelpers.h>
+#include <Engine/Component/Model.h>
 
 struct AssimpNodeData
 {

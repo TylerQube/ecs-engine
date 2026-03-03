@@ -8,7 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb/stb_image.h>
 
-#include <Engine/Component/Renderable.h>
+#include <Engine/Component/Model.h>
 #include <fstream>
 #include <iostream>
 #include <map>

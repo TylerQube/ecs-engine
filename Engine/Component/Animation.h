@@ -1,4 +1,4 @@
-#include <Animation/Animation.h>
+#include <Engine/Animation/Animation.h>
 
 struct AnimationComponent {
     std::vector<glm::mat4> finalBoneMatrices;

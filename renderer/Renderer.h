@@ -1,5 +1,5 @@
 #pragma once
-#include "Engine/Component/Renderable.h"
+#include "Engine/Component/Model.h"
 #include <Engine/Component/Transform.h>
 #include <Engine/Types.hpp>
 

@@ -2,10 +2,13 @@
 
 #include "Renderer/Renderer.h"
 #include "Engine/Component/Transform.h"
+#include "Engine/Component/Model.h"
+#include "Engine/Component/Animation.h"
 #include "Engine/Component/Camera.h"
 #include "Engine/Component/Gravity.h"
 
 #include "Engine/System/RenderSystem.hpp"
+#include "Engine/System/AnimationSystem.hpp"
 #include "Engine/System/CameraSystem.hpp"
 #include "Engine/System/TransformSystem.hpp"
 #include "Engine/System/GravitySystem.hpp"
@@ -15,8 +18,6 @@
 #include "Engine/Types.hpp"
 
 #include "Enemy.hpp"
-#include <AnimationSystem.hpp>
-#include <Animation.h>
 
 class Game
 {
@@ -37,7 +38,9 @@ public:
     {
         engine->registerComponent<Transform>();
         engine->registerComponent<Gravity>();
-        engine->registerComponent<Renderable>();
+        engine->registerComponent<Model>();
+        engine->registerComponent<AnimationComponent>();
+        engine->registerComponent<Skeleton>();
         engine->registerComponent<Camera>();
         engine->registerComponent<Collider>();
         engine->registerComponent<AABB>();
@@ -45,7 +48,7 @@ public:
         auto renderSystem = engine->registerSystem<RenderSystem>();
         Signature signature;
         signature.set(engine->getComponentId<Transform>());
-        signature.set(engine->getComponentId<Renderable>());
+        signature.set(engine->getComponentId<Model>());
         engine->setSignature<RenderSystem>(signature);
 
         renderSystem->init(*engine);
@@ -79,13 +82,13 @@ public:
         engine->setSignature<GravitySystem>(signature);
         gravitySystem->init(*engine);
 
-        auto animSystem = engine->registerSystem<AnimationSystem>();
-        signature.reset();
-        signature.set(engine->getComponentId<Model>());
-        signature.set(engine->getComponentId<Skeleton>());
-        signature.set(engine->getComponentId<AnimationComponent>());
-        engine->setSignature<AnimationSystem>(signature);
-        animSystem->init(*engine);
+        // auto animSystem = engine->registerSystem<AnimationSystem>();
+        // signature.reset();
+        // signature.set(engine->getComponentId<Model>());
+        // signature.set(engine->getComponentId<Skeleton>());
+        // signature.set(engine->getComponentId<AnimationComponent>());
+        // engine->setSignature<AnimationSystem>(signature);
+        // animSystem->init(*engine);
         
         auto globalGravity = Gravity { glm::vec3(0.0f, -9.81f, 0.0f) };
 
@@ -123,10 +126,10 @@ public:
                                        {0.0f, -90.0f, 0.0f},
                                        glm::vec3(1.0f)};
         engine->addComponent(wall, wallTransform);
-        Renderable wallRenderable;
+        Model wallModel;
         WorldMesh mesh;
         unsigned int shader = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
-        wallRenderable.shaderId = shader;
+        wallModel.shaderId = shader;
         mesh.vertices = {
             {{-4.0f, 0.0f, -4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, -4.0f}},
             {{-4.0f, 0.0f, 4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, 4.0f}},
@@ -136,8 +139,8 @@ public:
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = "wallMesh";
         mesh.textures.push_back(stoneTexture);
-        wallRenderable.meshes.push_back(mesh);
-        engine->addComponent(wall, wallRenderable);
+        wallModel.meshes.push_back(mesh);
+        engine->addComponent(wall, wallModel);
 
         auto wallCollider = Collider{};
         auto wallAABB = AABB({glm::vec3(-4.0f, 0.0f, -4.0f), glm::vec3(4.0f, 0.0f, 4.0f)});
