@@ -54,7 +54,3 @@ struct Model
     std::map<std::string, BoneInfo> boneInfo;
     int boneCount;
 };
-
-struct Skeleton {
-    std::vector<glm::mat4> finalBoneMatrices;
-};

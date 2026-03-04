@@ -212,26 +212,32 @@ void OpenGLRenderer::setModelMatrix(glm::mat4 model) {
 }
 
 void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, const glm::mat4 matrix) {
+    useShader(shaderId);
     glUniformMatrix4fv(glGetUniformLocation(shaderId, name.c_str()), 1, GL_FALSE, &matrix[0][0]);
 }
 
 void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, const glm::vec3 vector) {
+    useShader(shaderId);
     glUniform3fv(glGetUniformLocation(shaderId, name.c_str()), 1, &vector[0]);
 }
 
 void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, const glm::vec4 vector) {
+    useShader(shaderId);
     glUniform4fv(glGetUniformLocation(shaderId, name.c_str()), 1, &vector[0]);
 }
 
 void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, float value) {
+    useShader(shaderId);
     glUniform1f(glGetUniformLocation(shaderId, name.c_str()), value);
 }
 
 void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, int value) {
+    useShader(shaderId);
     glUniform1i(glGetUniformLocation(shaderId, name.c_str()), value);
 }
 
 void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, unsigned int value) {
+    useShader(shaderId);
     glUniform1ui(glGetUniformLocation(shaderId, name.c_str()), value);
 }
 

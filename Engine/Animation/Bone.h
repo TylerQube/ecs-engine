@@ -5,8 +5,10 @@
 #include <glm/gtx/quaternion.hpp>
 #include <vector>
 #include <string>
+#include <cassert>
 #include <assimp/anim.h>
 #include <Engine/AssimpGLMHelpers.h>
+#include <iostream>
 
 /**
  * Referenced from LearnOpenGL Skeletal Animation Article:
@@ -89,6 +91,7 @@ public:
             data.timestamp = timestamp;
             scales.push_back(data);
         }
+
     }
 
     void Update(float animTime) {
@@ -103,41 +106,56 @@ public:
     int GetBoneId() { return id; }
 
     int GetPositionIndex(float animTime) {
+        if (numPositions <= 1)
+            return 0;
+
         for (int index = 0; index < numPositions - 1; ++index)
         {
             if (animTime < positions[index + 1].timestamp)
                 return index;
         }
-        assert(0);
+        return numPositions - 2;
     }
 
     int GetRotationIndex(float animTime) {
+        if (numRotations <= 1)
+            return 0;
+
         for (int index = 0; index < numRotations - 1; ++index)
         {
             if (animTime < rotations[index + 1].timestamp)
                 return index;
         }
-        assert(0);
+        return numRotations - 2;
     }
 
 
     int GetScaleIndex(float animTime) {
+        if (numScales <= 1)
+            return 0;
+
         for (int index = 0; index < numScales - 1; ++index)
         {
             if (animTime < scales[index + 1].timestamp)
                 return index;
         }
-        assert(0);
+        return numScales - 2;
     }
 
 private:
     /* Gets normalized value for Lerp & Slerp*/
     float GetScaleFactor(float lastTimeStamp, float nextTimeStamp, float animationTime)
     {
-        float scaleFactor = 0.0f;
-        float midWayLength = animationTime - lastTimeStamp;
         float framesDiff = nextTimeStamp - lastTimeStamp;
-        scaleFactor = midWayLength / framesDiff;
+        if (framesDiff <= 0.0f)
+            return 0.0f;
+
+        float scaleFactor = (animationTime - lastTimeStamp) / framesDiff;
+        if (scaleFactor < 0.0f)
+            return 0.0f;
+        if (scaleFactor > 1.0f)
+            return 1.0f;
+
         return scaleFactor;
     }
 

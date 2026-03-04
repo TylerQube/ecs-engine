@@ -40,7 +40,6 @@ public:
         engine->registerComponent<Gravity>();
         engine->registerComponent<Model>();
         engine->registerComponent<AnimationComponent>();
-        engine->registerComponent<Skeleton>();
         engine->registerComponent<Camera>();
         engine->registerComponent<Collider>();
         engine->registerComponent<AABB>();
@@ -85,7 +84,6 @@ public:
         auto animSystem = engine->registerSystem<AnimationSystem>();
         signature.reset();
         signature.set(engine->getComponentId<Model>());
-        signature.set(engine->getComponentId<Skeleton>());
         signature.set(engine->getComponentId<AnimationComponent>());
         engine->setSignature<AnimationSystem>(signature);
         animSystem->init(*engine);
@@ -156,6 +154,7 @@ public:
                 break;
 
             gravitySystem->update(deltaTime);
+            animSystem->update(deltaTime);
             cameraSystem->update(deltaTime);
             colliderSystem->update(deltaTime);
             movementSystem->update(deltaTime);

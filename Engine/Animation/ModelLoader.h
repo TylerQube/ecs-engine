@@ -17,8 +17,6 @@
 #include <vector>
 using namespace std;
 
-#define MAX_BONE_WEIGHTS 0x7fffffff
-
 unsigned int TextureFromFile(const char *path);
 
 class ModelLoader {
@@ -52,13 +50,14 @@ class ModelLoader {
 
         std::vector<WorldMesh> meshes;
         std::map<string, BoneInfo> boneInfoMap;
-        int boneCount;
+        int boneCount = 0;
         // process ASSIMP's root node recursively
         processNode(scene->mRootNode, scene, directory, meshes, boneInfoMap, boneCount);
 
+        std::cout << "Loaded model with " << meshes.size() << " meshes and " << boneInfoMap.size() << " bones" << std::endl;
         return Model{
-            .meshes = meshes, 
             .shaderId = shaderId, 
+            .meshes = meshes, 
             .boneInfo = boneInfoMap,
             .boneCount = boneCount, 
         };
@@ -172,7 +171,7 @@ class ModelLoader {
     }
 
     static void SetVertexBoneData(Vertex &vertex, int boneID, float weight) {
-        for (int i = 0; i < MAX_BONE_WEIGHTS; ++i) {
+        for (int i = 0; i < MAX_BONE_INFLUENCE; ++i) {
             if (vertex.m_BoneIDs[i] < 0) {
                 vertex.m_Weights[i] = weight;
                 vertex.m_BoneIDs[i] = boneID;
@@ -183,17 +182,16 @@ class ModelLoader {
 
     static void ExtractBoneWeightForVertices(std::vector<Vertex> &vertices, aiMesh *mesh, const aiScene *scene,
                                              std::map<std::string, BoneInfo> &boneMap, int &boneCountDst) {
-        int boneCount = 0;
         for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex) {
             int boneID = -1;
             std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
             if (boneMap.find(boneName) == boneMap.end()) {
                 BoneInfo newBoneInfo;
-                newBoneInfo.id = boneCount;
+                newBoneInfo.id = boneCountDst;
                 newBoneInfo.offset = AssimpGLMHelpers::ConvertMatrixToGLMFormat(mesh->mBones[boneIndex]->mOffsetMatrix);
                 boneMap[boneName] = newBoneInfo;
-                boneID = boneCount;
-                boneCount++;
+                boneID = boneCountDst;
+                boneCountDst++;
             } else {
                 boneID = boneMap[boneName].id;
             }
@@ -208,7 +206,6 @@ class ModelLoader {
                 SetVertexBoneData(vertices[vertexId], boneID, weight);
             }
         }
-        boneCountDst = boneCount;
     }
 
     // checks all material textures of a given type and loads the textures if they're not loaded yet.
@@ -279,4 +276,4 @@ unsigned int TextureFromFile(const char *path) {
     }
 
     return textureID;
-};
+}

@@ -14,10 +14,11 @@ class RenderSystem : public System {
             auto transform = engine->getComponent<Transform>(entity);
 
             // Set bone matrices for animation
-            if (engine->hasComponent<Skeleton>(entity)) {
-                auto skeleton = engine->getComponent<Skeleton>(entity);
-                for (int i = 0; i < skeleton.finalBoneMatrices.size(); i++) {
-                    glm::mat4 mat = skeleton.finalBoneMatrices[i];
+            if (engine->hasComponent<AnimationComponent>(entity)) {
+                auto animation = engine->getComponent<AnimationComponent>(entity);
+
+                for (int i = 0; i < animation.finalBoneMatrices.size(); i++) {
+                    glm::mat4 mat = animation.finalBoneMatrices[i];
                     engine->setUniform(model.shaderId, "finalBonesMatrices[" + std::to_string(i) + "]", mat);
                 }
             }

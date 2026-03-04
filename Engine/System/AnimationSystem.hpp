@@ -1,4 +1,12 @@
+#pragma once
+
+#include <iostream>
+#include <string>
+#include <glm/glm.hpp>
 #include "System.h"
+#include "Engine/Engine.hpp"
+#include "Engine/Component/Animation.h"
+#include "Engine/Animation/Bone.h"
 
 class AnimationSystem : public System {
   public:
@@ -9,19 +17,18 @@ class AnimationSystem : public System {
 
     void update(float dt) {
         for (Entity entity : entities) {
-            auto anim = engine->getComponent<AnimationComponent>(entity);
+            auto &anim = engine->getComponent<AnimationComponent>(entity);
             if (!anim.currentAnimation)
                 continue;
-            auto skeleton = engine->getComponent<Skeleton>(entity);
 
             anim.currentTime += anim.currentAnimation->GetTicksPerSecond() * dt;
             anim.currentTime = fmod(anim.currentTime, anim.currentAnimation->GetDuration());
-            calculateBoneTransform(anim, skeleton, &anim.currentAnimation->GetRootNode(), glm::mat4(1.0f));
+            calculateBoneTransform(anim, &anim.currentAnimation->GetRootNode(), glm::mat4(1.0f));
         }
     }
 
   private:
-    void calculateBoneTransform(AnimationComponent &anim, Skeleton &skeleton, const AssimpNodeData *node,
+    void calculateBoneTransform(AnimationComponent &anim, const AssimpNodeData *node,
                                 glm::mat4 parentTransform) {
         std::string nodeName = node->name;
         glm::mat4 nodeTransform = node->transformation;
@@ -39,10 +46,10 @@ class AnimationSystem : public System {
         if (boneInfoMap.find(nodeName) != boneInfoMap.end()) {
             int index = boneInfoMap[nodeName].id;
             glm::mat4 offset = boneInfoMap[nodeName].offset;
-            skeleton.finalBoneMatrices[index] = globalTransformation * offset;
+            anim.finalBoneMatrices[index] = globalTransformation * offset;
         }
 
         for (int i = 0; i < node->childrenCount; i++)
-            calculateBoneTransform(anim, skeleton, &node->children[i], globalTransformation);
+            calculateBoneTransform(anim, &node->children[i], globalTransformation);
     }
 };

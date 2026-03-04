@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <map>
 #include <glm/glm.hpp>
@@ -73,7 +75,7 @@ public:
         boneInfoMap = modelBoneInfoMap;
     }
 
-    inline float GetTicksPerSecond() { return ticksPerSecond; }
+    inline int GetTicksPerSecond() { return ticksPerSecond; }
     inline float GetDuration() { return duration; }
     inline const AssimpNodeData &GetRootNode() { return rootNode; }
     inline const std::map<std::string, BoneInfo> &GetBoneIDMap()
