@@ -15,7 +15,7 @@ const float WIDTH = 0.5;
 const float HEIGHT = 0.615;
 const float aabbPadding = 0.1;
 
-const std::string modelPath = "resources/models/dancing_vampire.dae";
+const std::string modelPath = "resources/models/hiphop.fbx";
 shared_ptr<Model> enemyModel;
 shared_ptr<Animation> enemyAnim; 
 
@@ -33,7 +33,7 @@ struct Enemy
             .velocity = glm::vec3(0.0f),
             .acceleration = glm::vec3(0.0f),
             .rotation = {0.0f, 0.0f, 0.0f},
-            .scale = glm::vec3(0.6f)};
+            .scale = glm::vec3(0.006f)};
 
         engine->addComponent(enemy, tf);
 
