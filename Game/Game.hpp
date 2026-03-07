@@ -18,6 +18,7 @@
 #include "Engine/Types.hpp"
 
 #include "Enemy.hpp"
+#include "LevelGen.hpp"
 
 class Game
 {
@@ -104,7 +105,7 @@ public:
                                    0.1f,
                                    45.0f};
         engine->addComponent(player, playerCamera);
-        engine->addComponent(player, globalGravity);
+        // engine->addComponent(player, globalGravity);
 
         auto playerCollider = Collider{};
         auto playerAABB = AABB{glm::vec3(-0.1f, -0.5f, -0.1f), glm::vec3(0.1f, 0.2f, 0.1f)};
@@ -144,6 +145,14 @@ public:
         auto wallAABB = AABB({glm::vec3(-4.0f, 0.0f, -4.0f), glm::vec3(4.0f, 0.0f, 4.0f)});
         engine->addComponent(wall, wallCollider);
         engine->addComponent(wall, wallAABB);
+
+        auto dungeonNode = LevelGenerator::generateDungeon(0, 0, DUNGEON_WIDTH, DUNGEON_HEIGHT);
+        auto dungeonModel = LevelGenerator::generateModelFromDungeon(&dungeonNode, shader);
+
+        Entity dungeon = engine->createEntity("dungeon");
+        auto dungeonTransform = Transform{glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f)};
+        engine->addComponent(dungeon, dungeonTransform);
+        engine->addComponent(dungeon, dungeonModel);
 
 
         while (true)
