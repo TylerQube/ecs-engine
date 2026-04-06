@@ -118,10 +118,14 @@ struct LevelGenerator {
         return BSPLeaf{.x = roomX, .y = roomY, .width = roomWidth, .height = roomHeight};
     }
 
-    static Model generateModelFromDungeon(BSPNode *node, unsigned int shaderId, const Texture *wallTexture = nullptr) {
+    static Model generateModelFromDungeon(BSPNode *node,
+                                          unsigned int shaderId,
+                                          const Texture *floorTexture = nullptr,
+                                          const Texture *wallTexture = nullptr,
+                                          const Texture *ceilingTexture = nullptr) {
         std::vector<WorldMesh> meshes;
         RoomOpenings roomOpenings;
-        meshesFromDungeon(node, meshes, wallTexture, roomOpenings);
+        meshesFromDungeon(node, meshes, floorTexture, wallTexture, ceilingTexture, roomOpenings);
         addRoomWalls(node, meshes, wallTexture, roomOpenings);
 
         return Model{
@@ -130,7 +134,19 @@ struct LevelGenerator {
         };
     }
 
-    static void addFloorMesh(std::vector<WorldMesh> &meshes, int x, int y, int width, int height, const std::string &prefix) {
+    static void assignTexture(WorldMesh &mesh, const Texture *texture) {
+        if (texture) {
+            mesh.material.textures.push_back(*texture);
+        }
+    }
+
+    static void addFloorMesh(std::vector<WorldMesh> &meshes,
+                             int x,
+                             int y,
+                             int width,
+                             int height,
+                             const std::string &prefix,
+                             const Texture *floorTexture = nullptr) {
         if (width <= 0 || height <= 0)
             return;
 
@@ -148,6 +164,35 @@ struct LevelGenerator {
         };
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = prefix + std::to_string(meshes.size());
+        assignTexture(mesh, floorTexture);
+        meshes.push_back(mesh);
+    }
+
+    static void addCeilingMesh(std::vector<WorldMesh> &meshes,
+                               int x,
+                               int y,
+                               int width,
+                               int height,
+                               const std::string &prefix,
+                               const Texture *ceilingTexture = nullptr) {
+        if (width <= 0 || height <= 0)
+            return;
+
+        float u0 = (float)x / TEXTURE_TILE_WORLD_SIZE;
+        float v0 = (float)y / TEXTURE_TILE_WORLD_SIZE;
+        float u1 = (float)(x + width) / TEXTURE_TILE_WORLD_SIZE;
+        float v1 = (float)(y + height) / TEXTURE_TILE_WORLD_SIZE;
+
+        WorldMesh mesh;
+        mesh.vertices = {
+            {{(float)x, WALL_HEIGHT, (float)y}, {0.0f, -1.0f, 0.0f}, {u0, v0}},
+            {{(float)x, WALL_HEIGHT, (float)(y + height)}, {0.0f, -1.0f, 0.0f}, {u0, v1}},
+            {{(float)(x + width), WALL_HEIGHT, (float)y}, {0.0f, -1.0f, 0.0f}, {u1, v0}},
+            {{(float)(x + width), WALL_HEIGHT, (float)(y + height)}, {0.0f, -1.0f, 0.0f}, {u1, v1}},
+        };
+        mesh.indices = {0, 1, 2, 1, 3, 2};
+        mesh.name = prefix + std::to_string(meshes.size());
+        assignTexture(mesh, ceilingTexture);
         meshes.push_back(mesh);
     }
 
@@ -177,9 +222,7 @@ struct LevelGenerator {
         };
         wall.indices = {0, 1, 2, 1, 3, 2};
         wall.name = prefix + std::to_string(meshes.size());
-        if (wallTexture) {
-            wall.material.textures.push_back(*wallTexture);
-        }
+        assignTexture(wall, wallTexture);
         meshes.push_back(wall);
     }
 
@@ -216,12 +259,16 @@ struct LevelGenerator {
                                  int height,
                                  const std::string &floorPrefix,
                                  const std::string &wallPrefix,
+                                 const std::string &ceilingPrefix,
+                                 const Texture *floorTexture,
                                  const Texture *wallTexture,
+                                 const Texture *ceilingTexture,
                                  bool addNorthWall = true,
                                  bool addEastWall = true,
                                  bool addSouthWall = true,
                                  bool addWestWall = true) {
-        addFloorMesh(meshes, x, y, width, height, floorPrefix);
+        addFloorMesh(meshes, x, y, width, height, floorPrefix, floorTexture);
+        addCeilingMesh(meshes, x, y, width, height, ceilingPrefix, ceilingTexture);
         addWallsForRect(
             meshes, x, y, width, height, wallPrefix, wallTexture, addNorthWall, addEastWall, addSouthWall, addWestWall);
     }
@@ -550,7 +597,9 @@ struct LevelGenerator {
 
     static void connectSiblingSubtrees(std::vector<WorldMesh> &meshes,
                                        BSPNode *parent,
+                                       const Texture *floorTexture,
                                        const Texture *wallTexture,
+                                       const Texture *ceilingTexture,
                                        RoomOpenings &roomOpenings) {
         if (!parent || !parent->childA || !parent->childB)
             return;
@@ -601,7 +650,10 @@ struct LevelGenerator {
                 CONNECTOR_WIDTH,
                 "corridor_h_",
                 "wall_",
+                "ceiling_",
+                floorTexture,
                 wallTexture,
+                ceilingTexture,
                 true,
                 false,
                 true,
@@ -643,7 +695,10 @@ struct LevelGenerator {
                 corridorHeight,
                 "corridor_v_",
                 "wall_",
+                "ceiling_",
+                floorTexture,
                 wallTexture,
+                ceilingTexture,
                 false,
                 true,
                 false,
@@ -653,18 +708,22 @@ struct LevelGenerator {
 
     static void meshesFromDungeon(BSPNode *node,
                                   std::vector<WorldMesh> &meshes,
+                                  const Texture *floorTexture,
                                   const Texture *wallTexture,
+                                  const Texture *ceilingTexture,
                                   RoomOpenings &roomOpenings) {
         if (!node)
             return;
 
         if (node->room) {
-            addFloorMesh(meshes, node->room->x, node->room->y, node->room->width, node->room->height, "room");
+            addFloorMesh(meshes, node->room->x, node->room->y, node->room->width, node->room->height, "room", floorTexture);
+            addCeilingMesh(
+                meshes, node->room->x, node->room->y, node->room->width, node->room->height, "ceiling_", ceilingTexture);
             return;
         }
 
-        meshesFromDungeon(node->childA, meshes, wallTexture, roomOpenings);
-        meshesFromDungeon(node->childB, meshes, wallTexture, roomOpenings);
-        connectSiblingSubtrees(meshes, node, wallTexture, roomOpenings);
+        meshesFromDungeon(node->childA, meshes, floorTexture, wallTexture, ceilingTexture, roomOpenings);
+        meshesFromDungeon(node->childB, meshes, floorTexture, wallTexture, ceilingTexture, roomOpenings);
+        connectSiblingSubtrees(meshes, node, floorTexture, wallTexture, ceilingTexture, roomOpenings);
     }
 };

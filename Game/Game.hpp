@@ -156,12 +156,26 @@ public:
 
         auto dungeon = engine->createEntity("dungeon");
         auto dungeonBSP = LevelGenerator::generateDungeon(0, 0, 70, 70, 40);
-        unsigned int dungeonWallTexId = engine->loadTextureFromFile("./textures/stone_tile.jpg");
+        unsigned int dungeonFloorTexId = engine->loadTextureFromFile("./textures/stone_tile.jpg");
+        auto dungeonFloorTexture = Texture{
+            dungeonFloorTexId,
+            "texture_diffuse",
+            "./textures/stone_tile.jpg"};
+
+        unsigned int dungeonWallTexId = engine->loadTextureFromFile("./textures/stone_wall_plain.png");
         auto dungeonWallTexture = Texture{
             dungeonWallTexId,
             "texture_diffuse",
+            "./textures/stone_wall_plain.png"};
+
+        unsigned int dungeonCeilingTexId = engine->loadTextureFromFile("./textures/stone_tile.jpg");
+        auto dungeonCeilingTexture = Texture{
+            dungeonCeilingTexId,
+            "texture_diffuse",
             "./textures/stone_tile.jpg"};
-        auto dungeonModel = LevelGenerator::generateModelFromDungeon(&dungeonBSP, shader, &dungeonWallTexture);
+
+        auto dungeonModel = LevelGenerator::generateModelFromDungeon(
+            &dungeonBSP, shader, &dungeonFloorTexture, &dungeonWallTexture, &dungeonCeilingTexture);
         engine->addComponent(dungeon, Transform{glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f)});
         engine->addComponent(dungeon, dungeonModel);
 
