@@ -155,7 +155,7 @@ public:
         engine->addComponent(room, roomModel);
 
         auto dungeon = engine->createEntity("dungeon");
-        auto dungeonBSP = LevelGenerator::generateDungeon(0, 0, 100, 100, 40);
+        auto dungeonBSP = LevelGenerator::generateDungeon(0, 0, 70, 70, 40);
         auto dungeonModel = LevelGenerator::generateModelFromDungeon(&dungeonBSP, shader);
         engine->addComponent(dungeon, Transform{glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f)});
         engine->addComponent(dungeon, dungeonModel);
