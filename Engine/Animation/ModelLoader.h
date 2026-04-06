@@ -38,7 +38,8 @@ class ModelLoader {
         // read file via ASSIMP
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                                                           aiProcess_FlipUVs | aiProcess_CalcTangentSpace | aiProcess_PopulateArmatureData | aiProcess_LimitBoneWeights);
+                                                           aiProcess_FlipUVs | aiProcess_CalcTangentSpace |
+                                                           aiProcess_PopulateArmatureData | aiProcess_LimitBoneWeights);
         // check for errors
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
         {
@@ -54,12 +55,13 @@ class ModelLoader {
         // process ASSIMP's root node recursively
         processNode(scene->mRootNode, scene, directory, meshes, boneInfoMap, boneCount);
 
-        std::cout << "Loaded model with " << meshes.size() << " meshes and " << boneInfoMap.size() << " bones" << std::endl;
+        std::cout << "Loaded model with " << meshes.size() << " meshes and " << boneInfoMap.size() << " bones"
+                  << std::endl;
         return Model{
-            .shaderId = shaderId, 
-            .meshes = meshes, 
+            .shaderId = shaderId,
+            .meshes = meshes,
             .boneInfo = boneInfoMap,
-            .boneCount = boneCount, 
+            .boneCount = boneCount,
         };
     }
 
@@ -85,7 +87,6 @@ class ModelLoader {
         // data to fill
         vector<Vertex> vertices;
         vector<unsigned int> indices;
-        vector<Texture> textures;
 
         // walk through each of the mesh's vertices
         for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -147,6 +148,7 @@ class ModelLoader {
         // specular: texture_specularN
         // normal: texture_normalN
 
+        std::vector<Texture> textures;
         // 1. diffuse maps
         vector<Texture> diffuseMaps =
             loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse", directory);
@@ -164,10 +166,24 @@ class ModelLoader {
             loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height", directory);
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
+        Material mat;
+        aiColor3D color;
+        if (material->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
+            mat.ambient = glm::vec3(color.r, color.g, color.b);
+        if (material->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+            mat.diffuse = glm::vec3(color.r, color.g, color.b);
+        if (material->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS)
+            mat.specular = glm::vec3(color.r, color.g, color.b);
+        
+        float shine;
+        if (material->Get(AI_MATKEY_SHININESS, shine) == AI_SUCCESS)
+            mat.shininess = shine;
+
+
         ExtractBoneWeightForVertices(vertices, mesh, scene, boneInfo, boneCountDst);
 
         // return a mesh object created from the extracted mesh data
-        return WorldMesh{vertices, indices, textures};
+        return WorldMesh{vertices, indices, mat, mesh->mName.C_Str()};
     }
 
     static void SetVertexBoneData(Vertex &vertex, int boneID, float weight) {

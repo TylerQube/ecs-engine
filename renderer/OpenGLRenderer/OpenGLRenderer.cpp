@@ -159,11 +159,11 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh, unsigned int shaderId) {
     unsigned int specularNr = 1;
     unsigned int normalNr = 1;
     unsigned int heightNr = 1;
-    for (unsigned int i = 0; i < cmesh->textures.size(); i++) {
+    for (unsigned int i = 0; i < cmesh->material.textures.size(); i++) {
         glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
         // retrieve texture number (the N in diffuse_textureN)
         std::string number;
-        std::string name = cmesh->textures[i].type;
+        std::string name = cmesh->material.textures[i].type;
         if (name == "texture_diffuse")
             number = std::to_string(diffuseNr++);
         else if (name == "texture_specular")
@@ -176,7 +176,7 @@ void OpenGLRenderer::renderMesh(WorldMesh *cmesh, unsigned int shaderId) {
         // now set the sampler to the correct texture unit
         glUniform1i(glGetUniformLocation(shaderId, (name + number).c_str()), i);
         // and finally bind the texture
-        glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
+        glBindTexture(GL_TEXTURE_2D, cmesh->material.textures[i].id);
     }
 
     // draw mesh

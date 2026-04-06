@@ -36,11 +36,19 @@ struct Texture
     std::string path;
 };
 
+struct Material {
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float shininess;
+    std::vector<Texture> textures;
+};
+
 struct WorldMesh
 {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture> textures;
+    Material material;
 
     std::string name;
 };

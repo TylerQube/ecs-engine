@@ -47,7 +47,7 @@ public:
             glm::mat4 view = glm::lookAt(transform.position, transform.position + camera.front, camera.up);
             engine->setViewMatrix(view);
 
-            glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), engine->getAspectRatio(), 0.1f, 100.0f);
+            glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), engine->getAspectRatio(), 0.1f, 200.0f);
             engine->setProjectionMatrix(projection);
         }
     }

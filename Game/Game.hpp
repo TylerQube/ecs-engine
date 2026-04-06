@@ -122,22 +122,23 @@ public:
         auto wallTransform = Transform{glm::vec3(0.0f, 0.0f, 0.0f),
                                        glm::vec3(0.0f),
                                        glm::vec3(0.0f),
-                                       {0.0f, -90.0f, 0.0f},
+                                       {0.0f, 0.0f, 0.0f},
                                        glm::vec3(1.0f)};
         engine->addComponent(wall, wallTransform);
         Model wallModel;
         WorldMesh mesh;
         unsigned int shader = engine->loadShader("shaders/cont_vertex.glsl", "shaders/cont_fragment.glsl");
         wallModel.shaderId = shader;
+        float wallSize = 4.0f;
         mesh.vertices = {
-            {{-4.0f, 0.0f, -4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, -4.0f}},
-            {{-4.0f, 0.0f, 4.0f}, {0.0f, 4.0f, 0.0f}, {-4.0f, 4.0f}},
-            {{4.0f, 0.0f, -4.0f}, {0.0f, 4.0f, 0.0f}, {4.0f, -4.0f}},
-            {{4.0f, 0.0f, 4.0f}, {0.0f, 4.0f, 0.0f}, {4.0f, 4.0f}},
+            {{-wallSize, 0.0f, -wallSize}, {0.0f, wallSize, 0.0f}, {-wallSize, -wallSize}},
+            {{-wallSize, 0.0f, wallSize}, {0.0f, wallSize, 0.0f}, {-wallSize, wallSize}},
+            {{wallSize, 0.0f, -wallSize}, {0.0f, wallSize, 0.0f}, {wallSize, -wallSize}},
+            {{wallSize, 0.0f, wallSize}, {0.0f, wallSize, 0.0f}, {wallSize, wallSize}},
         };
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = "wallMesh";
-        mesh.textures.push_back(stoneTexture);
+        mesh.material.textures.push_back(stoneTexture);
         wallModel.meshes.push_back(mesh);
         engine->addComponent(wall, wallModel);
 
@@ -146,12 +147,17 @@ public:
         engine->addComponent(wall, wallCollider);
         engine->addComponent(wall, wallAABB);
 
-        auto dungeonNode = LevelGenerator::generateDungeon(0, 0, DUNGEON_WIDTH, DUNGEON_HEIGHT);
-        auto dungeonModel = LevelGenerator::generateModelFromDungeon(&dungeonNode, shader);
 
-        Entity dungeon = engine->createEntity("dungeon");
-        auto dungeonTransform = Transform{glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f)};
-        engine->addComponent(dungeon, dungeonTransform);
+        auto room = engine->createEntity("room");
+        auto roomModel = ModelLoader::loadModel("resources/models/corridor1.glb", shader);
+        roomModel.shaderId = shader;
+        engine->addComponent(room, Transform{glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, -90.0f}, glm::vec3(1.0f)});
+        engine->addComponent(room, roomModel);
+
+        auto dungeon = engine->createEntity("dungeon");
+        auto dungeonBSP = LevelGenerator::generateDungeon(0, 0, 100, 100, 40);
+        auto dungeonModel = LevelGenerator::generateModelFromDungeon(&dungeonBSP, shader);
+        engine->addComponent(dungeon, Transform{glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f)});
         engine->addComponent(dungeon, dungeonModel);
 
 
