@@ -1,7 +1,9 @@
 #include <Engine/Component/Model.h>
 #include <algorithm>
+#include <array>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -38,6 +40,17 @@ struct LevelGenerator {
     constexpr static int ROOM_PADDING = 1;
     constexpr static int MIN_ROOM_FILL_PERCENT = 75;
     constexpr static float TEXTURE_TILE_WORLD_SIZE = 2.0f;
+    constexpr static float WALL_HEIGHT = 2.5f;
+    constexpr static float WALL_TILE_WORLD_SIZE = 2.0f;
+
+    enum WallSide {
+        North = 0,
+        East = 1,
+        South = 2,
+        West = 3,
+    };
+
+    using RoomOpenings = std::map<BSPLeaf *, std::array<std::vector<int>, 4>>;
 
     static BSPNode generateDungeon(int x, int y, int width, int height, int max_depth) {
         return generateDungeon(x, y, width, height, 0, max_depth);
@@ -105,9 +118,11 @@ struct LevelGenerator {
         return BSPLeaf{.x = roomX, .y = roomY, .width = roomWidth, .height = roomHeight};
     }
 
-    static Model generateModelFromDungeon(BSPNode *node, unsigned int shaderId) {
+    static Model generateModelFromDungeon(BSPNode *node, unsigned int shaderId, const Texture *wallTexture = nullptr) {
         std::vector<WorldMesh> meshes;
-        meshesFromDungeon(node, meshes);
+        RoomOpenings roomOpenings;
+        meshesFromDungeon(node, meshes, wallTexture, roomOpenings);
+        addRoomWalls(node, meshes, wallTexture, roomOpenings);
 
         return Model{
             .shaderId = shaderId,
@@ -134,6 +149,209 @@ struct LevelGenerator {
         mesh.indices = {0, 1, 2, 1, 3, 2};
         mesh.name = prefix + std::to_string(meshes.size());
         meshes.push_back(mesh);
+    }
+
+    static void addWallQuad(std::vector<WorldMesh> &meshes,
+                            float x0,
+                            float z0,
+                            float x1,
+                            float z1,
+                            const std::string &prefix,
+                            const Texture *wallTexture) {
+        float dx = x1 - x0;
+        float dz = z1 - z0;
+        float len = std::max(1.0f, std::sqrt(dx * dx + dz * dz));
+
+        float nx = dz / len;
+        float nz = -dx / len;
+
+        float u1 = len / WALL_TILE_WORLD_SIZE;
+        float v1 = WALL_HEIGHT / WALL_TILE_WORLD_SIZE;
+
+        WorldMesh wall;
+        wall.vertices = {
+            {{x0, 0.0f, z0}, {nx, 0.0f, nz}, {0.0f, 0.0f}},
+            {{x1, 0.0f, z1}, {nx, 0.0f, nz}, {u1, 0.0f}},
+            {{x0, WALL_HEIGHT, z0}, {nx, 0.0f, nz}, {0.0f, v1}},
+            {{x1, WALL_HEIGHT, z1}, {nx, 0.0f, nz}, {u1, v1}},
+        };
+        wall.indices = {0, 1, 2, 1, 3, 2};
+        wall.name = prefix + std::to_string(meshes.size());
+        if (wallTexture) {
+            wall.material.textures.push_back(*wallTexture);
+        }
+        meshes.push_back(wall);
+    }
+
+    static void addWallsForRect(std::vector<WorldMesh> &meshes,
+                                int x,
+                                int y,
+                                int width,
+                                int height,
+                                const std::string &prefix,
+                                const Texture *wallTexture,
+                                bool addNorthWall = true,
+                                bool addEastWall = true,
+                                bool addSouthWall = true,
+                                bool addWestWall = true) {
+        float x0 = (float)x;
+        float x1 = (float)(x + width);
+        float z0 = (float)y;
+        float z1 = (float)(y + height);
+
+        if (addNorthWall)
+            addWallQuad(meshes, x0, z0, x1, z0, prefix, wallTexture);
+        if (addEastWall)
+            addWallQuad(meshes, x1, z0, x1, z1, prefix, wallTexture);
+        if (addSouthWall)
+            addWallQuad(meshes, x1, z1, x0, z1, prefix, wallTexture);
+        if (addWestWall)
+            addWallQuad(meshes, x0, z1, x0, z0, prefix, wallTexture);
+    }
+
+    static void addFloorAndWalls(std::vector<WorldMesh> &meshes,
+                                 int x,
+                                 int y,
+                                 int width,
+                                 int height,
+                                 const std::string &floorPrefix,
+                                 const std::string &wallPrefix,
+                                 const Texture *wallTexture,
+                                 bool addNorthWall = true,
+                                 bool addEastWall = true,
+                                 bool addSouthWall = true,
+                                 bool addWestWall = true) {
+        addFloorMesh(meshes, x, y, width, height, floorPrefix);
+        addWallsForRect(
+            meshes, x, y, width, height, wallPrefix, wallTexture, addNorthWall, addEastWall, addSouthWall, addWestWall);
+    }
+
+    static void registerRoomOpening(RoomOpenings &roomOpenings, BSPLeaf *room, WallSide side, int axisCoord) {
+        if (!room)
+            return;
+        roomOpenings[room][(int)side].push_back(axisCoord);
+    }
+
+    static std::vector<int> getSortedOpenings(const RoomOpenings &roomOpenings,
+                                              BSPLeaf *room,
+                                              WallSide side,
+                                              int minAxis,
+                                              int maxAxis) {
+        std::vector<int> openings;
+        auto roomIt = roomOpenings.find(room);
+        if (roomIt == roomOpenings.end())
+            return openings;
+
+        openings = roomIt->second[(int)side];
+        for (int &value : openings) {
+            value = std::clamp(value, minAxis, maxAxis);
+        }
+        std::sort(openings.begin(), openings.end());
+        openings.erase(std::unique(openings.begin(), openings.end()), openings.end());
+        return openings;
+    }
+
+    static void addHorizontalWallWithOpenings(std::vector<WorldMesh> &meshes,
+                                              float xStart,
+                                              float xEnd,
+                                              float z,
+                                              bool reverse,
+                                              const std::vector<int> &openings,
+                                              const std::string &prefix,
+                                              const Texture *wallTexture) {
+        float cursor = xStart;
+        float holeHalf = CONNECTOR_WIDTH * 0.5f;
+
+        for (int opening : openings) {
+            float holeStart = std::clamp((float)opening - holeHalf, xStart, xEnd);
+            float holeEnd = std::clamp((float)opening + holeHalf, xStart, xEnd);
+
+            if (holeStart - cursor > 0.01f) {
+                if (reverse)
+                    addWallQuad(meshes, holeStart, z, cursor, z, prefix, wallTexture);
+                else
+                    addWallQuad(meshes, cursor, z, holeStart, z, prefix, wallTexture);
+            }
+            cursor = std::max(cursor, holeEnd);
+        }
+
+        if (xEnd - cursor > 0.01f) {
+            if (reverse)
+                addWallQuad(meshes, xEnd, z, cursor, z, prefix, wallTexture);
+            else
+                addWallQuad(meshes, cursor, z, xEnd, z, prefix, wallTexture);
+        }
+    }
+
+    static void addVerticalWallWithOpenings(std::vector<WorldMesh> &meshes,
+                                            float zStart,
+                                            float zEnd,
+                                            float x,
+                                            bool reverse,
+                                            const std::vector<int> &openings,
+                                            const std::string &prefix,
+                                            const Texture *wallTexture) {
+        float cursor = zStart;
+        float holeHalf = CONNECTOR_WIDTH * 0.5f;
+
+        for (int opening : openings) {
+            float holeStart = std::clamp((float)opening - holeHalf, zStart, zEnd);
+            float holeEnd = std::clamp((float)opening + holeHalf, zStart, zEnd);
+
+            if (holeStart - cursor > 0.01f) {
+                if (reverse)
+                    addWallQuad(meshes, x, holeStart, x, cursor, prefix, wallTexture);
+                else
+                    addWallQuad(meshes, x, cursor, x, holeStart, prefix, wallTexture);
+            }
+            cursor = std::max(cursor, holeEnd);
+        }
+
+        if (zEnd - cursor > 0.01f) {
+            if (reverse)
+                addWallQuad(meshes, x, zEnd, x, cursor, prefix, wallTexture);
+            else
+                addWallQuad(meshes, x, cursor, x, zEnd, prefix, wallTexture);
+        }
+    }
+
+    static void addRoomWallsForLeaf(std::vector<WorldMesh> &meshes,
+                                    BSPLeaf *room,
+                                    const Texture *wallTexture,
+                                    const RoomOpenings &roomOpenings) {
+        if (!room)
+            return;
+
+        float x0 = (float)room->x;
+        float x1 = (float)(room->x + room->width);
+        float z0 = (float)room->y;
+        float z1 = (float)(room->y + room->height);
+
+        auto northOpenings = getSortedOpenings(roomOpenings, room, North, room->x, room->x + room->width);
+        auto southOpenings = getSortedOpenings(roomOpenings, room, South, room->x, room->x + room->width);
+        auto eastOpenings = getSortedOpenings(roomOpenings, room, East, room->y, room->y + room->height);
+        auto westOpenings = getSortedOpenings(roomOpenings, room, West, room->y, room->y + room->height);
+
+        addHorizontalWallWithOpenings(meshes, x0, x1, z0, false, northOpenings, "wall_", wallTexture);
+        addVerticalWallWithOpenings(meshes, z0, z1, x1, false, eastOpenings, "wall_", wallTexture);
+        addHorizontalWallWithOpenings(meshes, x0, x1, z1, true, southOpenings, "wall_", wallTexture);
+        addVerticalWallWithOpenings(meshes, z0, z1, x0, true, westOpenings, "wall_", wallTexture);
+    }
+
+    static void addRoomWalls(BSPNode *node,
+                             std::vector<WorldMesh> &meshes,
+                             const Texture *wallTexture,
+                             const RoomOpenings &roomOpenings) {
+        if (!node)
+            return;
+
+        if (node->room) {
+            addRoomWallsForLeaf(meshes, node->room, wallTexture, roomOpenings);
+            return;
+        }
+
+        addRoomWalls(node->childA, meshes, wallTexture, roomOpenings);
+        addRoomWalls(node->childB, meshes, wallTexture, roomOpenings);
     }
 
     static std::pair<int, int> roomCenter(const BSPLeaf *room) {
@@ -330,7 +548,10 @@ struct LevelGenerator {
         return {x, y};
     }
 
-    static void connectSiblingSubtrees(std::vector<WorldMesh> &meshes, BSPNode *parent) {
+    static void connectSiblingSubtrees(std::vector<WorldMesh> &meshes,
+                                       BSPNode *parent,
+                                       const Texture *wallTexture,
+                                       RoomOpenings &roomOpenings) {
         if (!parent || !parent->childA || !parent->childB)
             return;
 
@@ -368,7 +589,23 @@ struct LevelGenerator {
             int y = overlapY;
             int corridorX = std::min(ax, bx);
             int corridorWidth = std::max(1, std::abs(ax - bx));
-            addFloorMesh(meshes, corridorX, y - CONNECTOR_WIDTH / 2, corridorWidth, CONNECTOR_WIDTH, "corridor_h_");
+
+            registerRoomOpening(roomOpenings, leftRoom, East, ay);
+            registerRoomOpening(roomOpenings, rightRoom, West, by);
+
+            addFloorAndWalls(
+                meshes,
+                corridorX,
+                y - CONNECTOR_WIDTH / 2,
+                corridorWidth,
+                CONNECTOR_WIDTH,
+                "corridor_h_",
+                "wall_",
+                wallTexture,
+                true,
+                false,
+                true,
+                false);
         } else {
             int broadOverlapX = pickRandomOverlapValue(
                 roomsA,
@@ -394,11 +631,30 @@ struct LevelGenerator {
             int x = overlapX;
             int corridorY = std::min(ay, by);
             int corridorHeight = std::max(1, std::abs(ay - by));
-            addFloorMesh(meshes, x - CONNECTOR_WIDTH / 2, corridorY, CONNECTOR_WIDTH, corridorHeight, "corridor_v_");
+
+            registerRoomOpening(roomOpenings, topRoom, South, ax);
+            registerRoomOpening(roomOpenings, bottomRoom, North, bx);
+
+            addFloorAndWalls(
+                meshes,
+                x - CONNECTOR_WIDTH / 2,
+                corridorY,
+                CONNECTOR_WIDTH,
+                corridorHeight,
+                "corridor_v_",
+                "wall_",
+                wallTexture,
+                false,
+                true,
+                false,
+                true);
         }
     }
 
-    static void meshesFromDungeon(BSPNode *node, std::vector<WorldMesh> &meshes) {
+    static void meshesFromDungeon(BSPNode *node,
+                                  std::vector<WorldMesh> &meshes,
+                                  const Texture *wallTexture,
+                                  RoomOpenings &roomOpenings) {
         if (!node)
             return;
 
@@ -407,8 +663,8 @@ struct LevelGenerator {
             return;
         }
 
-        meshesFromDungeon(node->childA, meshes);
-        meshesFromDungeon(node->childB, meshes);
-        connectSiblingSubtrees(meshes, node);
+        meshesFromDungeon(node->childA, meshes, wallTexture, roomOpenings);
+        meshesFromDungeon(node->childB, meshes, wallTexture, roomOpenings);
+        connectSiblingSubtrees(meshes, node, wallTexture, roomOpenings);
     }
 };
