@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits>
+
 #include "Renderer/Renderer.h"
 #include "Engine/Component/Transform.h"
 #include "Engine/Component/Model.h"
@@ -93,25 +95,6 @@ public:
 
         auto enemy = Enemy::create(engine, glm::vec3(3.0f, 0.0f, 0.0f));
 
-        Entity player = engine->createEntity("player");
-        auto playerTransform = Transform{glm::vec3(0.0f, 3.0f, 0.0f),
-                                         glm::vec3(0.0f),
-                                         glm::vec3(0.0f),
-                                         {0.0f, 0.0f, 0.0f},
-                                         glm::vec3(1.0f)};
-        engine->addComponent(player, playerTransform);
-        auto playerCamera = Camera{glm::vec3(0.0f, 0.0f, 1.0f),
-                                   glm::vec3(0.0f, 1.0f, 0.0f),
-                                   0.1f,
-                                   45.0f};
-        engine->addComponent(player, playerCamera);
-        // engine->addComponent(player, globalGravity);
-
-        auto playerCollider = Collider{};
-        auto playerAABB = AABB{glm::vec3(-0.1f, -0.5f, -0.1f), glm::vec3(0.1f, 0.2f, 0.1f)};
-        engine->addComponent(player, playerCollider);
-        engine->addComponent(player, playerAABB);
-
         unsigned int stoneTexId = engine->loadTextureFromFile("./textures/stone_tile.jpg");
         auto stoneTexture = Texture{
             stoneTexId,
@@ -156,6 +139,36 @@ public:
 
         auto dungeon = engine->createEntity("dungeon");
         auto dungeonBSP = LevelGenerator::generateDungeon(0, 0, 70, 70, 40);
+
+          std::vector<BSPLeaf *> rooms;
+          LevelGenerator::collectRooms(&dungeonBSP, rooms);
+          BSPLeaf *startRoom = rooms.empty() ? nullptr : rooms[LevelGenerator::randRange(0, (int)rooms.size() - 1)];
+          glm::vec3 playerSpawn = startRoom
+                            ? glm::vec3(
+                                (float)(startRoom->x + startRoom->width / 2),
+                                1.0f,
+                                (float)(startRoom->y + startRoom->height / 2))
+                            : glm::vec3(0.0f, 3.0f, 0.0f);
+
+          Entity player = engine->createEntity("player");
+          auto playerTransform = Transform{playerSpawn,
+                                 glm::vec3(0.0f),
+                                 glm::vec3(0.0f),
+                                 {0.0f, 0.0f, 0.0f},
+                                 glm::vec3(1.0f)};
+          engine->addComponent(player, playerTransform);
+          auto playerCamera = Camera{glm::vec3(0.0f, 0.0f, 1.0f),
+                             glm::vec3(0.0f, 1.0f, 0.0f),
+                             0.1f,
+                             45.0f};
+          engine->addComponent(player, playerCamera);
+          engine->addComponent(player, globalGravity);
+
+          auto playerCollider = Collider{};
+          auto playerAABB = AABB{glm::vec3(-0.1f, -0.5f, -0.1f), glm::vec3(0.1f, 0.2f, 0.1f)};
+          engine->addComponent(player, playerCollider);
+          engine->addComponent(player, playerAABB);
+
         unsigned int dungeonFloorTexId = engine->loadTextureFromFile("./textures/stone_tile.jpg");
         auto dungeonFloorTexture = Texture{
             dungeonFloorTexId,
@@ -178,6 +191,81 @@ public:
             &dungeonBSP, shader, &dungeonFloorTexture, &dungeonWallTexture, &dungeonCeilingTexture);
         engine->addComponent(dungeon, Transform{glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f)});
         engine->addComponent(dungeon, dungeonModel);
+
+        // Register collision for generated dungeon meshes (walls, floors, ceilings) using static AABBs.
+        for (const auto &generatedMesh : dungeonModel.meshes)
+        {
+            bool isWall = generatedMesh.name.rfind("wall_", 0) == 0;
+            bool isFloor = generatedMesh.name.rfind("room", 0) == 0 ||
+                           generatedMesh.name.rfind("corridor_h_", 0) == 0 ||
+                           generatedMesh.name.rfind("corridor_v_", 0) == 0;
+            bool isCeiling = generatedMesh.name.rfind("ceiling_", 0) == 0;
+            if (!isWall && !isFloor && !isCeiling)
+                continue;
+            if (generatedMesh.vertices.empty())
+                continue;
+
+            glm::vec3 minPos(std::numeric_limits<float>::max());
+            glm::vec3 maxPos(std::numeric_limits<float>::lowest());
+            for (const auto &vertex : generatedMesh.vertices)
+            {
+                minPos.x = std::min(minPos.x, vertex.Position.x);
+                minPos.y = std::min(minPos.y, vertex.Position.y);
+                minPos.z = std::min(minPos.z, vertex.Position.z);
+
+                maxPos.x = std::max(maxPos.x, vertex.Position.x);
+                maxPos.y = std::max(maxPos.y, vertex.Position.y);
+                maxPos.z = std::max(maxPos.z, vertex.Position.z);
+            }
+
+            // Add minimal thickness for planar meshes so CCD collision stays robust.
+            constexpr float COLLIDER_THICKNESS_EPSILON = 0.05f;
+            if (maxPos.x - minPos.x < COLLIDER_THICKNESS_EPSILON)
+            {
+                minPos.x -= COLLIDER_THICKNESS_EPSILON * 0.5f;
+                maxPos.x += COLLIDER_THICKNESS_EPSILON * 0.5f;
+            }
+            if (maxPos.y - minPos.y < COLLIDER_THICKNESS_EPSILON)
+            {
+                minPos.y -= COLLIDER_THICKNESS_EPSILON * 0.5f;
+                maxPos.y += COLLIDER_THICKNESS_EPSILON * 0.5f;
+            }
+            if (maxPos.z - minPos.z < COLLIDER_THICKNESS_EPSILON)
+            {
+                minPos.z -= COLLIDER_THICKNESS_EPSILON * 0.5f;
+                maxPos.z += COLLIDER_THICKNESS_EPSILON * 0.5f;
+            }
+
+            // Floors/ceilings get seam overlap and extra thickness to prevent edge gaps and step-like lips.
+            constexpr float FLOOR_SEAM_OVERLAP = 0.1f;
+            constexpr float FLOOR_THICKNESS = 0.2f;
+            constexpr float CEILING_THICKNESS = 0.2f;
+            if (isFloor)
+            {
+                minPos.x -= FLOOR_SEAM_OVERLAP;
+                maxPos.x += FLOOR_SEAM_OVERLAP;
+                minPos.z -= FLOOR_SEAM_OVERLAP;
+                maxPos.z += FLOOR_SEAM_OVERLAP;
+                minPos.y -= FLOOR_THICKNESS;
+                maxPos.y += FLOOR_THICKNESS;
+            }
+            else if (isCeiling)
+            {
+                minPos.x -= FLOOR_SEAM_OVERLAP;
+                maxPos.x += FLOOR_SEAM_OVERLAP;
+                minPos.z -= FLOOR_SEAM_OVERLAP;
+                maxPos.z += FLOOR_SEAM_OVERLAP;
+                minPos.y -= CEILING_THICKNESS;
+                maxPos.y += CEILING_THICKNESS;
+            }
+
+            auto wallColliderEntity = engine->createEntity("dungeon_static_collider");
+            engine->addComponent(
+                wallColliderEntity,
+                Transform{glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f)});
+            engine->addComponent(wallColliderEntity, Collider{});
+            engine->addComponent(wallColliderEntity, AABB{minPos, maxPos});
+        }
 
 
         while (true)

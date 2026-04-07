@@ -33,16 +33,18 @@ public:
     }
 
     void setSignature(Entity entity, Signature signature) {
+        assert(entity < MAX_ENTITIES && "Invalid entity id");
         signatures[entity] = signature;
     }
 
     Signature getSignature(Entity entity) {
+        assert(entity < MAX_ENTITIES && "Invalid entity id");
         return signatures[entity];
     }
 
 
 private:
     std::queue<Entity> availableEntities{};
-    std::array<Signature, MAX_COMPONENTS> signatures{};
+    std::array<Signature, MAX_ENTITIES> signatures{};
     uint32_t livingEntityCount;
 };
