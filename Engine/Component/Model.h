@@ -42,6 +42,8 @@ struct Material {
     glm::vec3 specular;
     float shininess;
     std::vector<Texture> textures;
+
+    bool receivesLight = true;
 };
 
 struct WorldMesh

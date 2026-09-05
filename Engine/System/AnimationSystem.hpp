@@ -5,7 +5,9 @@
 #include <glm/glm.hpp>
 #include "System.h"
 #include "Engine/Engine.hpp"
+#include "Engine/Component/Camera.h"
 #include "Engine/Component/Animation.h"
+#include "Engine/Component/Transform.h"
 #include "Engine/Animation/Bone.h"
 
 class AnimationSystem : public System {
@@ -16,9 +18,29 @@ class AnimationSystem : public System {
     }
 
     void update(float dt) {
+        glm::vec3 cameraPosition(0.0f);
+        bool hasCamera = false;
+        auto cameraEntities = engine->queryEntitiesWith<Camera, Transform>();
+        if (!cameraEntities.empty()) {
+            auto &cameraTransform = engine->getComponent<Transform>(cameraEntities[0]);
+            cameraPosition = cameraTransform.position;
+            hasCamera = true;
+        }
+
         for (Entity entity : entities) {
             auto &anim = engine->getComponent<AnimationComponent>(entity);
-            if (!anim.currentAnimation)
+            auto &transform = engine->getComponent<Transform>(entity);
+
+            anim.useSkinning = true;
+            if (hasCamera) {
+                float distanceToCamera = glm::length(transform.position - cameraPosition);
+                if (distanceToCamera > anim.skinningDisableDistance) {
+                    anim.useSkinning = false;
+                    continue;
+                }
+            }
+
+            if (!anim.currentAnimation || !anim.play)
                 continue;
 
             anim.currentTime += anim.currentAnimation->GetTicksPerSecond() * dt;

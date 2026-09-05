@@ -4,6 +4,7 @@
 #include "ComponentManager.hpp"
 #include "SystemManager.hpp"
 #include "InputManager.hpp"
+#include <type_traits>
 #include <Renderer/Renderer.h>
 #include <Renderer/OpenGLRenderer/OpenGLRenderer.h>
 
@@ -88,6 +89,19 @@ public:
     void setSignature(std::bitset<MAX_COMPONENTS> signature)
     {
         systemManager->setSignature<T>(signature);
+    }
+
+    template <typename... Components>
+    std::vector<Entity> queryEntitiesWith()
+    {
+        static_assert(sizeof...(Components) > 0, "queryEntitiesWith requires at least one component type");
+
+        Signature requiredSignature;
+        bool allRegistered = ((componentManager->getComponentId<Components>() != -1) && ...);
+        assert(allRegistered && "All query component types must be registered before querying");
+
+        (requiredSignature.set(componentManager->getComponentId<Components>(), true), ...);
+        return entityManager->getEntitiesWithSignature(requiredSignature);
     }
 
     unsigned int loadShader(const char *vertexPath, const char *fragmentPath)

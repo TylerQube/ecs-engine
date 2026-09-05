@@ -1,11 +1,35 @@
+#pragma once
+
 #include <Engine/Component/Model.h>
+
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
+
+// -----------------------------------------------------------------------------
+// LevelGenerator
+//
+// Procedurally builds a dungeon by recursively splitting a rectangular area
+// (binary space partitioning), turning the leaves into rooms, and connecting
+// sibling subtrees with corridors. The result is converted into renderable
+// meshes (floors, ceilings, walls with doorway cut-outs) and a set of point
+// light spawn locations.
+//
+// Pipeline overview:
+//   1. generateDungeon()          -> build the BSP tree (rooms as leaves)
+//   2. generateModelFromDungeon() -> walk the tree to build floor/ceiling/
+//                                     corridor meshes, then wall meshes with
+//                                     doorway openings carved out
+//   3. generatePointLightSpawns() -> walk the finished meshes and decide
+//                                     where to place point lights
+// -----------------------------------------------------------------------------
 
 struct BSPLeaf {
     int x;
@@ -18,31 +42,36 @@ struct BSPNode {
     BSPNode *childA = nullptr;
     BSPNode *childB = nullptr;
 
-    BSPLeaf *room = nullptr;
+    BSPLeaf *room = nullptr;  // Non-null only for leaf nodes.
 
+    // Bounds of this partition (not the room itself - see makeRoom()).
     int x;
     int y;
     int width;
     int height;
 };
 
-// struct Connector {
-//     BSPLeaf source;
-//     BSPLeaf dest;
-//     int x;
-//     int y;
-//     int width;
-// };
-
 struct LevelGenerator {
-    constexpr static int CUTOFF_SIZE = 12;
-    constexpr static int CONNECTOR_WIDTH = 2;
-    constexpr static int ROOM_PADDING = 1;
-    constexpr static int MIN_ROOM_FILL_PERCENT = 90;
-    constexpr static float TEXTURE_TILE_WORLD_SIZE = 2.0f;
+    // --- Tunable generation parameters -------------------------------------
+    constexpr static int CUTOFF_SIZE = 8;                  // Partitions at or below this size (in either
+                                                             // axis) stop splitting and become rooms.
+    constexpr static int CONNECTOR_WIDTH = 2;               // Width of corridors, in world units.
+    constexpr static int ROOM_PADDING = 1;                  // Minimum gap between a room and the edge of
+                                                             // the partition it was carved from.
+    constexpr static int MIN_ROOM_FILL_PERCENT = 80;        // Rooms are sized to fill at least this much
+                                                             // of their partition (after padding), keeping
+                                                             // rooms large and partitions from feeling empty.
+    constexpr static float TEXTURE_TILE_WORLD_SIZE = 2.0f;  // World units per floor/ceiling texture tile.
     constexpr static float WALL_HEIGHT = 2.0f;
-    constexpr static float WALL_TILE_WORLD_SIZE = 2.0f;
-    constexpr static float VISUAL_DOORWAY_CLEARANCE = 0.0f;
+    constexpr static float WALL_TILE_WORLD_SIZE = 2.0f;     // World units per wall texture tile.
+    constexpr static float VISUAL_DOORWAY_CLEARANCE = 0.0f; // Extra half-width added around doorway cut-outs
+                                                             // purely for visual breathing room.
+    constexpr static float WALL_GAP_EPSILON = 0.01f;        // Below this size, a wall segment between two
+                                                             // doorway cut-outs is skipped entirely.
+
+    // Set to true to log each room's placement as it's carved out. Off by
+    // default to keep generation quiet; flip this on when debugging layout issues.
+    constexpr static bool LOG_ROOM_CREATION = false;
 
     enum WallSide {
         North = 0,
@@ -51,8 +80,38 @@ struct LevelGenerator {
         West = 3,
     };
 
+    // Per-room list of doorway coordinates (along the wall) for each side,
+    // collected while corridors are being carved so walls can be built with
+    // the right holes in them afterwards.
     using RoomOpenings = std::map<BSPLeaf *, std::array<std::vector<int>, 4>>;
 
+    struct PointLightSpawn {
+        glm::vec3 position;
+        glm::vec3 color;
+        float intensity;
+    };
+
+    // Shared context passed around while building a single corridor, so the
+    // corridor-building functions don't need a long, repeated parameter list.
+    struct BuildParams {
+        const Texture *floorTexture = nullptr;
+        const Texture *wallTexture = nullptr;
+        const Texture *ceilingTexture = nullptr;
+        RoomOpenings *roomOpenings = nullptr;
+        const std::vector<BSPLeaf *> *roomsA = nullptr;
+        const std::vector<BSPLeaf *> *roomsB = nullptr;
+        std::string corridorPrefix = "corridor_";
+        std::string wallPrefix = "wall_";
+        std::string ceilingPrefix = "ceiling_";
+    };
+
+    // =========================================================================
+    // 1. BSP tree generation
+    // =========================================================================
+
+    // Public entry point: builds a BSP tree of the given size, recursively
+    // splitting up to max_depth times (or until partitions are too small to
+    // split further, whichever comes first).
     static BSPNode generateDungeon(int x, int y, int width, int height, int max_depth) {
         return generateDungeon(x, y, width, height, 0, max_depth);
     }
@@ -65,43 +124,54 @@ struct LevelGenerator {
             .height = height,
         };
 
-        bool canSplitH = width > CUTOFF_SIZE * 2;
-        bool canSplitV = height > CUTOFF_SIZE * 2;
-        if (depth >= max_depth || (!canSplitH && !canSplitV)) {
-            std::cout << "Creating room at depth " << depth << " (" << x << ", " << y << ") with width " << width
-                      << " and height " << height << std::endl;
+        bool canSplitWidth = width > CUTOFF_SIZE * 2;
+        bool canSplitHeight = height > CUTOFF_SIZE * 2;
+
+        bool reachedMaxDepth = depth >= max_depth;
+        bool tooSmallToSplit = !canSplitWidth && !canSplitHeight;
+        if (reachedMaxDepth || tooSmallToSplit) {
             node.room = new BSPLeaf(makeRoom(x, y, width, height));
+            if constexpr (LOG_ROOM_CREATION) {
+                std::cout << "Creating room at depth " << depth << " (" << x << ", " << y << ") with width " << width
+                          << " and height " << height << std::endl;
+            }
             return node;
         }
 
-        int splitVertical;
-        if (canSplitH && !canSplitV)
-            splitVertical = 1;
-        else if (!canSplitH && canSplitV)
-            splitVertical = 0;
-        else
-            splitVertical = std::rand() % 2;
-
+        bool splitVertical = chooseSplitAxis(canSplitWidth, canSplitHeight);
         if (splitVertical) {
-            int split = randRange(CUTOFF_SIZE, width - CUTOFF_SIZE);
-            node.childA = new BSPNode(generateDungeon(x, y, split, height, depth + 1, max_depth));
-            node.childB = new BSPNode(generateDungeon(x + split, y, width - split, height, depth + 1, max_depth));
+            // Vertical cut: split width into a left and right partition.
+            int splitX = randRange(CUTOFF_SIZE, width - CUTOFF_SIZE);
+            node.childA = new BSPNode(generateDungeon(x, y, splitX, height, depth + 1, max_depth));
+            node.childB = new BSPNode(generateDungeon(x + splitX, y, width - splitX, height, depth + 1, max_depth));
         } else {
-            int split = randRange(CUTOFF_SIZE, height - CUTOFF_SIZE);
-            node.childA = new BSPNode(generateDungeon(x, y, width, split, depth + 1, max_depth));
-            node.childB = new BSPNode(generateDungeon(x, y + split, width, height - split, depth + 1, max_depth));
+            // Horizontal cut: split height into a top and bottom partition.
+            int splitY = randRange(CUTOFF_SIZE, height - CUTOFF_SIZE);
+            node.childA = new BSPNode(generateDungeon(x, y, width, splitY, depth + 1, max_depth));
+            node.childB = new BSPNode(generateDungeon(x, y + splitY, width, height - splitY, depth + 1, max_depth));
         }
 
         return node;
     }
 
+    // Decides which axis to split a partition along. If only one axis is
+    // large enough to split, that axis is used; otherwise the choice is random.
+    static bool chooseSplitAxis(bool canSplitWidth, bool canSplitHeight) {
+        if (canSplitWidth && !canSplitHeight) return true;
+        if (!canSplitWidth && canSplitHeight) return false;
+        return (std::rand() % 2) == 0;
+    }
+
     static int randRange(int min, int max) {
-        // if(min >= max) assert(0 && "Invalid range for randRange");
         if (min >= max)
             return min;
         return min + std::rand() % (max - min + 1);
     }
 
+    // Carves a room out of a partition. The room is sized to fill at least
+    // MIN_ROOM_FILL_PERCENT of the space left after padding, then placed at a
+    // random offset within whatever slack remains - biasing toward large,
+    // well-filled rooms while still varying room size and position.
     static BSPLeaf makeRoom(int x, int y, int areaWidth, int areaHeight) {
         int maxRoomW = std::max(1, areaWidth - ROOM_PADDING * 2);
         int maxRoomH = std::max(1, areaHeight - ROOM_PADDING * 2);
@@ -112,28 +182,15 @@ struct LevelGenerator {
         int roomWidth = randRange(minRoomW, maxRoomW);
         int roomHeight = randRange(minRoomH, maxRoomH);
 
-        // Room stays within the partition while biasing toward high fill.
         int roomX = x + randRange(ROOM_PADDING, areaWidth - roomWidth - ROOM_PADDING);
         int roomY = y + randRange(ROOM_PADDING, areaHeight - roomHeight - ROOM_PADDING);
 
         return BSPLeaf{.x = roomX, .y = roomY, .width = roomWidth, .height = roomHeight};
     }
 
-    static Model generateModelFromDungeon(BSPNode *node,
-                                          unsigned int shaderId,
-                                          const Texture *floorTexture = nullptr,
-                                          const Texture *wallTexture = nullptr,
-                                          const Texture *ceilingTexture = nullptr) {
-        std::vector<WorldMesh> meshes;
-        RoomOpenings roomOpenings;
-        meshesFromDungeon(node, meshes, floorTexture, wallTexture, ceilingTexture, roomOpenings);
-        addRoomWalls(node, meshes, wallTexture, roomOpenings);
-
-        return Model{
-            .shaderId = shaderId,
-            .meshes = meshes,
-        };
-    }
+    // =========================================================================
+    // 2. Mesh building primitives (floor / ceiling / wall quads)
+    // =========================================================================
 
     static void assignTexture(WorldMesh &mesh, const Texture *texture) {
         if (texture) {
@@ -197,6 +254,9 @@ struct LevelGenerator {
         meshes.push_back(mesh);
     }
 
+    // Builds a single flat wall quad from (x0,z0) to (x1,z1), with its
+    // outward normal computed from the direction of travel (so winding /
+    // normal direction stay consistent regardless of which way the quad runs).
     static void addWallQuad(std::vector<WorldMesh> &meshes,
                             float x0,
                             float z0,
@@ -227,6 +287,8 @@ struct LevelGenerator {
         meshes.push_back(wall);
     }
 
+    // Builds up to four solid wall quads around a rectangle. Each side can be
+    // individually skipped, which corridors use to leave their long edges open.
     static void addWallsForRect(std::vector<WorldMesh> &meshes,
                                 int x,
                                 int y,
@@ -274,12 +336,22 @@ struct LevelGenerator {
             meshes, x, y, width, height, wallPrefix, wallTexture, addNorthWall, addEastWall, addSouthWall, addWestWall);
     }
 
+    // =========================================================================
+    // 3. Wall openings (doorways)
+    //
+    // Corridors register a doorway coordinate on each room they touch; once
+    // all corridors are built, each room's walls are built with holes carved
+    // out at those coordinates instead of solid quads.
+    // =========================================================================
+
     static void registerRoomOpening(RoomOpenings &roomOpenings, BSPLeaf *room, WallSide side, int axisCoord) {
         if (!room)
             return;
         roomOpenings[room][(int)side].push_back(axisCoord);
     }
 
+    // Returns the doorway coordinates registered for one side of a room,
+    // clamped to the wall's extent, sorted, and de-duplicated.
     static std::vector<int> getSortedOpenings(const RoomOpenings &roomOpenings,
                                               BSPLeaf *room,
                                               WallSide side,
@@ -299,6 +371,10 @@ struct LevelGenerator {
         return openings;
     }
 
+    // Builds a wall running along a fixed Z, from xStart to xEnd, skipping a
+    // doorway-sized gap at each coordinate in `openings`. `reverse` flips the
+    // quad winding so the wall's outward normal still points away from the room
+    // regardless of which direction (N vs S) it's being built in.
     static void addHorizontalWallWithOpenings(std::vector<WorldMesh> &meshes,
                                               float xStart,
                                               float xEnd,
@@ -308,13 +384,13 @@ struct LevelGenerator {
                                               const std::string &prefix,
                                               const Texture *wallTexture) {
         float cursor = xStart;
-        float holeHalf = CONNECTOR_WIDTH * 0.5f + VISUAL_DOORWAY_CLEARANCE;
+        float holeHalfWidth = CONNECTOR_WIDTH * 0.5f + VISUAL_DOORWAY_CLEARANCE;
 
         for (int opening : openings) {
-            float holeStart = std::clamp((float)opening - holeHalf, xStart, xEnd);
-            float holeEnd = std::clamp((float)opening + holeHalf, xStart, xEnd);
+            float holeStart = std::clamp((float)opening - holeHalfWidth, xStart, xEnd);
+            float holeEnd = std::clamp((float)opening + holeHalfWidth, xStart, xEnd);
 
-            if (holeStart - cursor > 0.01f) {
+            if (holeStart - cursor > WALL_GAP_EPSILON) {
                 if (reverse)
                     addWallQuad(meshes, holeStart, z, cursor, z, prefix, wallTexture);
                 else
@@ -323,7 +399,7 @@ struct LevelGenerator {
             cursor = std::max(cursor, holeEnd);
         }
 
-        if (xEnd - cursor > 0.01f) {
+        if (xEnd - cursor > WALL_GAP_EPSILON) {
             if (reverse)
                 addWallQuad(meshes, xEnd, z, cursor, z, prefix, wallTexture);
             else
@@ -331,6 +407,8 @@ struct LevelGenerator {
         }
     }
 
+    // Same as addHorizontalWallWithOpenings, but for a wall running along a
+    // fixed X, from zStart to zEnd.
     static void addVerticalWallWithOpenings(std::vector<WorldMesh> &meshes,
                                             float zStart,
                                             float zEnd,
@@ -340,13 +418,13 @@ struct LevelGenerator {
                                             const std::string &prefix,
                                             const Texture *wallTexture) {
         float cursor = zStart;
-        float holeHalf = CONNECTOR_WIDTH * 0.5f + VISUAL_DOORWAY_CLEARANCE;
+        float holeHalfWidth = CONNECTOR_WIDTH * 0.5f + VISUAL_DOORWAY_CLEARANCE;
 
         for (int opening : openings) {
-            float holeStart = std::clamp((float)opening - holeHalf, zStart, zEnd);
-            float holeEnd = std::clamp((float)opening + holeHalf, zStart, zEnd);
+            float holeStart = std::clamp((float)opening - holeHalfWidth, zStart, zEnd);
+            float holeEnd = std::clamp((float)opening + holeHalfWidth, zStart, zEnd);
 
-            if (holeStart - cursor > 0.01f) {
+            if (holeStart - cursor > WALL_GAP_EPSILON) {
                 if (reverse)
                     addWallQuad(meshes, x, holeStart, x, cursor, prefix, wallTexture);
                 else
@@ -355,7 +433,7 @@ struct LevelGenerator {
             cursor = std::max(cursor, holeEnd);
         }
 
-        if (zEnd - cursor > 0.01f) {
+        if (zEnd - cursor > WALL_GAP_EPSILON) {
             if (reverse)
                 addWallQuad(meshes, x, zEnd, x, cursor, prefix, wallTexture);
             else
@@ -386,6 +464,8 @@ struct LevelGenerator {
         addVerticalWallWithOpenings(meshes, z0, z1, x0, true, westOpenings, "wall_", wallTexture);
     }
 
+    // Recursively builds walls (with doorway cut-outs already registered by
+    // the corridor pass) for every room in the tree.
     static void addRoomWalls(BSPNode *node,
                              std::vector<WorldMesh> &meshes,
                              const Texture *wallTexture,
@@ -401,6 +481,10 @@ struct LevelGenerator {
         addRoomWalls(node->childA, meshes, wallTexture, roomOpenings);
         addRoomWalls(node->childB, meshes, wallTexture, roomOpenings);
     }
+
+    // =========================================================================
+    // 4. Tree / geometry query helpers shared by the corridor pass
+    // =========================================================================
 
     static std::pair<int, int> roomCenter(const BSPLeaf *room) {
         return {room->x + room->width / 2, room->y + room->height / 2};
@@ -429,10 +513,15 @@ struct LevelGenerator {
         collectRooms(node->childB, outRooms);
     }
 
+    // A node's two children are side-by-side (vertical split, i.e. the cut ran
+    // vertically) if they differ in X; otherwise they're stacked (horizontal split).
     static bool isVerticalSplit(BSPNode *node) {
         return node && node->childA && node->childB && node->childA->x != node->childB->x;
     }
 
+    // Computes how far two rooms overlap along the axis perpendicular to the
+    // split (the axis a corridor between them would run "across"). Returns
+    // false if they don't overlap at all on that axis.
     static bool overlapRange(const BSPLeaf *a,
                              const BSPLeaf *b,
                              bool verticalSplit,
@@ -448,6 +537,29 @@ struct LevelGenerator {
         return outMin <= outMax;
     }
 
+    // Combines overlapRange() across every (roomA, roomB) pair to find the
+    // full range of coordinates where at least one pair of rooms overlaps.
+    // This is the range of coordinates connectSiblingSubtrees() will scan
+    // when looking for a place to put a corridor.
+    static bool computeOverlapInterval(const std::vector<BSPLeaf *> &roomsA,
+                                       const std::vector<BSPLeaf *> &roomsB,
+                                       bool verticalSplit,
+                                       int &outMin,
+                                       int &outMax) {
+        outMin = std::numeric_limits<int>::max();
+        outMax = std::numeric_limits<int>::min();
+        for (BSPLeaf *a : roomsA) {
+            for (BSPLeaf *b : roomsB) {
+                int oMin = 0, oMax = 0;
+                if (!overlapRange(a, b, verticalSplit, oMin, oMax))
+                    continue;
+                outMin = std::min(outMin, oMin);
+                outMax = std::max(outMax, oMax);
+            }
+        }
+        return outMin <= outMax;
+    }
+
     static bool rectsOverlap(float ax, float ay, float aw, float ah, int bx, int by, int bw, int bh) {
         float ax1 = ax + aw;
         float ay1 = ay + ah;
@@ -456,6 +568,8 @@ struct LevelGenerator {
         return ax < bx1 && ax1 > (float)bx && ay < by1 && ay1 > (float)by;
     }
 
+    // Checks whether a proposed corridor rectangle would cut through any room
+    // other than the two it's meant to connect.
     static bool corridorHitsOtherRooms(float corridorX,
                                        float corridorY,
                                        float corridorW,
@@ -481,168 +595,23 @@ struct LevelGenerator {
         return false;
     }
 
-    static bool tryBuildHorizontalCorridor(std::vector<WorldMesh> &meshes,
-                                           BSPLeaf *leftRoom,
-                                           BSPLeaf *rightRoom,
-                                           int y,
-                                           const Texture *floorTexture,
-                                           const Texture *wallTexture,
-                                           const Texture *ceilingTexture,
-                                           RoomOpenings &roomOpenings,
-                                           const std::vector<BSPLeaf *> &roomsA,
-                                           const std::vector<BSPLeaf *> &roomsB) {
-        auto [ax, ay] = horizontalEndpoint(leftRoom, y, true);
-        auto [bx, by] = horizontalEndpoint(rightRoom, y, false);
-        int corridorX = std::min(ax, bx);
-        int corridorWidth = std::max(1, std::abs(ax - bx));
-        float corridorY = (float)y - CONNECTOR_WIDTH * 0.5f;
+    // =========================================================================
+    // 5. Corridor construction
+    //
+    // connectSiblingSubtrees() is called once per internal BSP node, after
+    // both children have already been fully built. It scans outward from the
+    // midpoint of the overlapping region between the two sides looking for a
+    // pair of rooms it can join with a straight corridor without cutting
+    // through a third room. If no safe route exists anywhere in the overlap,
+    // the two subtrees are simply left unconnected (dungeon connectivity as a
+    // whole is still fine as long as *some* path connects every room, which
+    // higher-level connectors elsewhere in the tree provide).
+    // =========================================================================
 
-        if (corridorHitsOtherRooms((float)corridorX,
-                                   corridorY,
-                                   (float)corridorWidth,
-                                   (float)CONNECTOR_WIDTH,
-                                   leftRoom,
-                                   rightRoom,
-                                   roomsA,
-                                   roomsB)) {
-            return false;
-        }
-
-        registerRoomOpening(roomOpenings, leftRoom, East, ay);
-        registerRoomOpening(roomOpenings, rightRoom, West, by);
-
-        addFloorAndWalls(
-            meshes,
-            corridorX,
-            y - CONNECTOR_WIDTH / 2,
-            corridorWidth,
-            CONNECTOR_WIDTH,
-            "corridor_h_",
-            "wall_",
-            "ceiling_",
-            floorTexture,
-            wallTexture,
-            ceilingTexture,
-            true,
-            false,
-            true,
-            false);
-        return true;
-    }
-
-    static bool tryBuildVerticalCorridor(std::vector<WorldMesh> &meshes,
-                                         BSPLeaf *topRoom,
-                                         BSPLeaf *bottomRoom,
-                                         int x,
-                                         const Texture *floorTexture,
-                                         const Texture *wallTexture,
-                                         const Texture *ceilingTexture,
-                                         RoomOpenings &roomOpenings,
-                                         const std::vector<BSPLeaf *> &roomsA,
-                                         const std::vector<BSPLeaf *> &roomsB) {
-        auto [ax, ay] = verticalEndpoint(topRoom, x, true);
-        auto [bx, by] = verticalEndpoint(bottomRoom, x, false);
-        int corridorY = std::min(ay, by);
-        int corridorHeight = std::max(1, std::abs(ay - by));
-        float corridorX = (float)x - CONNECTOR_WIDTH * 0.5f;
-
-        if (corridorHitsOtherRooms(corridorX,
-                                   (float)corridorY,
-                                   (float)CONNECTOR_WIDTH,
-                                   (float)corridorHeight,
-                                   topRoom,
-                                   bottomRoom,
-                                   roomsA,
-                                   roomsB)) {
-            return false;
-        }
-
-        registerRoomOpening(roomOpenings, topRoom, South, ax);
-        registerRoomOpening(roomOpenings, bottomRoom, North, bx);
-
-        addFloorAndWalls(
-            meshes,
-            x - CONNECTOR_WIDTH / 2,
-            corridorY,
-            CONNECTOR_WIDTH,
-            corridorHeight,
-            "corridor_v_",
-            "wall_",
-            "ceiling_",
-            floorTexture,
-            wallTexture,
-            ceilingTexture,
-            false,
-            true,
-            false,
-            true);
-        return true;
-    }
-
-    static bool pickBestOverlappingPair(const std::vector<BSPLeaf *> &roomsA,
-                                        const std::vector<BSPLeaf *> &roomsB,
-                                        bool verticalSplit,
-                                        BSPLeaf *&outA,
-                                        BSPLeaf *&outB,
-                                        int &outMin,
-                                        int &outMax) {
-        bool found = false;
-        int bestScore = std::numeric_limits<int>::min();
-
-        for (BSPLeaf *a : roomsA) {
-            for (BSPLeaf *b : roomsB) {
-                int interMin = 0;
-                int interMax = 0;
-                if (!overlapRange(a, b, verticalSplit, interMin, interMax))
-                    continue;
-
-                int overlapSpan = interMax - interMin;
-                int gap = verticalSplit ? std::abs((a->x + a->width) - b->x)
-                                        : std::abs((a->y + a->height) - b->y);
-                int score = overlapSpan * 100 - gap;
-
-                if (!found || score > bestScore) {
-                    found = true;
-                    bestScore = score;
-                    outA = a;
-                    outB = b;
-                    outMin = interMin;
-                    outMax = interMax;
-                }
-            }
-        }
-
-        return found;
-    }
-
-    static int pickRandomOverlapValue(const std::vector<BSPLeaf *> &leftRooms,
-                                      const std::vector<BSPLeaf *> &rightRooms,
-                                      bool verticalSplit,
-                                      int fallbackMin,
-                                      int fallbackMax) {
-        int bestMin = fallbackMin;
-        int bestMax = fallbackMax;
-        int bestSpan = std::max(0, fallbackMax - fallbackMin);
-
-        for (const BSPLeaf *a : leftRooms) {
-            for (const BSPLeaf *b : rightRooms) {
-                int interMin = 0;
-                int interMax = 0;
-                if (!overlapRange(a, b, verticalSplit, interMin, interMax))
-                    continue;
-
-                int span = interMax - interMin;
-                if (span > bestSpan) {
-                    bestSpan = span;
-                    bestMin = interMin;
-                    bestMax = interMax;
-                }
-            }
-        }
-
-        return randRange(bestMin, bestMax);
-    }
-
+    // Given a Y coordinate, finds whichever room in `rooms` sits at that
+    // height and is furthest right (pickRightMost) or furthest left. Used to
+    // find the room on each side of a vertical split that a horizontal
+    // corridor at that Y would actually reach.
     static BSPLeaf *rayPickRoomHorizontal(const std::vector<BSPLeaf *> &rooms, int yCoord, bool pickRightMost) {
         BSPLeaf *selected = nullptr;
         int selectedScore = pickRightMost ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
@@ -657,23 +626,11 @@ struct LevelGenerator {
                 selectedScore = score;
             }
         }
-
-        if (!selected && !rooms.empty()) {
-            selected = rooms[0];
-            for (BSPLeaf *room : rooms) {
-                if (pickRightMost) {
-                    if (room->x + room->width > selected->x + selected->width)
-                        selected = room;
-                } else {
-                    if (room->x < selected->x)
-                        selected = room;
-                }
-            }
-        }
-
         return selected;
     }
 
+    // Same idea as rayPickRoomHorizontal, but for a horizontal split: given an
+    // X coordinate, finds the furthest-down (pickBottomMost) or furthest-up room.
     static BSPLeaf *rayPickRoomVertical(const std::vector<BSPLeaf *> &rooms, int xCoord, bool pickBottomMost) {
         BSPLeaf *selected = nullptr;
         int selectedScore = pickBottomMost ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
@@ -688,23 +645,12 @@ struct LevelGenerator {
                 selectedScore = score;
             }
         }
-
-        if (!selected && !rooms.empty()) {
-            selected = rooms[0];
-            for (BSPLeaf *room : rooms) {
-                if (pickBottomMost) {
-                    if (room->y + room->height > selected->y + selected->height)
-                        selected = room;
-                } else {
-                    if (room->y < selected->y)
-                        selected = room;
-                }
-            }
-        }
-
         return selected;
     }
 
+    // Where a horizontal corridor should attach to a room's east or west wall:
+    // clamps the target Y into the wall's interior (so it never lands exactly
+    // on a corner) and returns the wall's X coordinate on the requested side.
     static std::pair<int, int> horizontalEndpoint(BSPLeaf *room, int yCoord, bool useRightWall) {
         if (!room)
             return {0, 0};
@@ -716,6 +662,8 @@ struct LevelGenerator {
         return {x, y};
     }
 
+    // Same as horizontalEndpoint, but for a vertical corridor attaching to a
+    // room's north or south wall.
     static std::pair<int, int> verticalEndpoint(BSPLeaf *room, int xCoord, bool useBottomWall) {
         if (!room)
             return {0, 0};
@@ -727,6 +675,121 @@ struct LevelGenerator {
         return {x, y};
     }
 
+    // Attempts to build a horizontal corridor between leftRoom's east wall and
+    // rightRoom's west wall at height `y`. Fails (returns false, builds
+    // nothing) if the corridor would cut through an unrelated room.
+    static bool tryBuildHorizontalCorridor(std::vector<WorldMesh> &meshes,
+                                           BSPLeaf *leftRoom,
+                                           BSPLeaf *rightRoom,
+                                           int y,
+                                           const BuildParams &ctx) {
+        auto [ax, ay] = horizontalEndpoint(leftRoom, y, true);
+        auto [bx, by] = horizontalEndpoint(rightRoom, y, false);
+        int corridorX = std::min(ax, bx);
+        int corridorWidth = std::max(1, std::abs(ax - bx));
+        float corridorY = (float)y - CONNECTOR_WIDTH * 0.5f;
+
+        if (corridorHitsOtherRooms((float)corridorX,
+                                   corridorY,
+                                   (float)corridorWidth,
+                                   (float)CONNECTOR_WIDTH,
+                                   leftRoom,
+                                   rightRoom,
+                                   *ctx.roomsA,
+                                   *ctx.roomsB)) {
+            return false;
+        }
+
+        registerRoomOpening(*ctx.roomOpenings, leftRoom, East, ay);
+        registerRoomOpening(*ctx.roomOpenings, rightRoom, West, by);
+
+        addFloorAndWalls(
+            meshes,
+            corridorX,
+            y - CONNECTOR_WIDTH / 2,
+            corridorWidth,
+            CONNECTOR_WIDTH,
+            ctx.corridorPrefix + "h_",
+            ctx.wallPrefix,
+            ctx.ceilingPrefix,
+            ctx.floorTexture,
+            ctx.wallTexture,
+            ctx.ceilingTexture,
+            /*addNorthWall=*/true,
+            /*addEastWall=*/false,
+            /*addSouthWall=*/true,
+            /*addWestWall=*/false);
+        return true;
+    }
+
+    // Attempts to build a vertical corridor between topRoom's south wall and
+    // bottomRoom's north wall at horizontal position `x`. Fails (returns
+    // false, builds nothing) if the corridor would cut through an unrelated room.
+    static bool tryBuildVerticalCorridor(std::vector<WorldMesh> &meshes,
+                                         BSPLeaf *topRoom,
+                                         BSPLeaf *bottomRoom,
+                                         int x,
+                                         const BuildParams &ctx) {
+        auto [ax, ay] = verticalEndpoint(topRoom, x, true);
+        auto [bx, by] = verticalEndpoint(bottomRoom, x, false);
+        int corridorY = std::min(ay, by);
+        int corridorHeight = std::max(1, std::abs(ay - by));
+        float corridorX = (float)x - CONNECTOR_WIDTH * 0.5f;
+
+        if (corridorHitsOtherRooms(corridorX,
+                                   (float)corridorY,
+                                   (float)CONNECTOR_WIDTH,
+                                   (float)corridorHeight,
+                                   topRoom,
+                                   bottomRoom,
+                                   *ctx.roomsA,
+                                   *ctx.roomsB)) {
+            return false;
+        }
+
+        registerRoomOpening(*ctx.roomOpenings, topRoom, South, ax);
+        registerRoomOpening(*ctx.roomOpenings, bottomRoom, North, bx);
+
+        addFloorAndWalls(
+            meshes,
+            x - CONNECTOR_WIDTH / 2,
+            corridorY,
+            CONNECTOR_WIDTH,
+            corridorHeight,
+            ctx.corridorPrefix + "v_",
+            ctx.wallPrefix,
+            ctx.ceilingPrefix,
+            ctx.floorTexture,
+            ctx.wallTexture,
+            ctx.ceilingTexture,
+            /*addNorthWall=*/false,
+            /*addEastWall=*/true,
+            /*addSouthWall=*/false,
+            /*addWestWall=*/true);
+        return true;
+    }
+
+    static BuildParams makeCorridorContext(const Texture *floorTexture,
+                                           const Texture *wallTexture,
+                                           const Texture *ceilingTexture,
+                                           RoomOpenings &roomOpenings,
+                                           const std::vector<BSPLeaf *> &roomsA,
+                                           const std::vector<BSPLeaf *> &roomsB) {
+        BuildParams ctx;
+        ctx.floorTexture = floorTexture;
+        ctx.wallTexture = wallTexture;
+        ctx.ceilingTexture = ceilingTexture;
+        ctx.roomOpenings = &roomOpenings;
+        ctx.roomsA = &roomsA;
+        ctx.roomsB = &roomsB;
+        return ctx;
+    }
+
+    // Connects the two subtrees under `parent` with a single corridor, if a
+    // safe route exists. Scans outward (center, center+1, center-1, center+2, ...)
+    // from the midpoint of the overlapping region between the two sides so
+    // that corridors tend to land near the middle of the shared wall rather
+    // than jammed against one end.
     static void connectSiblingSubtrees(std::vector<WorldMesh> &meshes,
                                        BSPNode *parent,
                                        const Texture *floorTexture,
@@ -745,119 +808,58 @@ struct LevelGenerator {
 
         bool verticalSplit = isVerticalSplit(parent);
 
-        if (verticalSplit) {
-            for (BSPLeaf *leftRoom : roomsA) {
-                for (BSPLeaf *rightRoom : roomsB) {
-                    int overlapMin = 0;
-                    int overlapMax = 0;
-                    if (!overlapRange(leftRoom, rightRoom, true, overlapMin, overlapMax))
-                        continue;
+        int overlapMin = 0, overlapMax = 0;
+        if (!computeOverlapInterval(roomsA, roomsB, verticalSplit, overlapMin, overlapMax)) {
+            // No pair of rooms across the split shares any space to route a
+            // straight corridor through - leave this pair of subtrees unconnected.
+            return;
+        }
 
-                    int midY = (overlapMin + overlapMax) / 2;
-                    int randY = randRange(overlapMin, overlapMax);
-                    if (tryBuildHorizontalCorridor(meshes,
-                                                   leftRoom,
-                                                   rightRoom,
-                                                   midY,
-                                                   floorTexture,
-                                                   wallTexture,
-                                                   ceilingTexture,
-                                                   roomOpenings,
-                                                   roomsA,
-                                                   roomsB) ||
-                        tryBuildHorizontalCorridor(meshes,
-                                                   leftRoom,
-                                                   rightRoom,
-                                                   randY,
-                                                   floorTexture,
-                                                   wallTexture,
-                                                   ceilingTexture,
-                                                   roomOpenings,
-                                                   roomsA,
-                                                   roomsB) ||
-                        tryBuildHorizontalCorridor(meshes,
-                                                   leftRoom,
-                                                   rightRoom,
-                                                   overlapMin,
-                                                   floorTexture,
-                                                   wallTexture,
-                                                   ceilingTexture,
-                                                   roomOpenings,
-                                                   roomsA,
-                                                   roomsB) ||
-                        tryBuildHorizontalCorridor(meshes,
-                                                   leftRoom,
-                                                   rightRoom,
-                                                   overlapMax,
-                                                   floorTexture,
-                                                   wallTexture,
-                                                   ceilingTexture,
-                                                   roomOpenings,
-                                                   roomsA,
-                                                   roomsB)) {
-                        return;
-                    }
-                }
-            }
-        } else {
-            for (BSPLeaf *topRoom : roomsA) {
-                for (BSPLeaf *bottomRoom : roomsB) {
-                    int overlapMin = 0;
-                    int overlapMax = 0;
-                    if (!overlapRange(topRoom, bottomRoom, false, overlapMin, overlapMax))
-                        continue;
+        BuildParams ctx = makeCorridorContext(floorTexture, wallTexture, ceilingTexture, roomOpenings, roomsA, roomsB);
 
-                    int midX = (overlapMin + overlapMax) / 2;
-                    int randX = randRange(overlapMin, overlapMax);
-                    if (tryBuildVerticalCorridor(meshes,
-                                                 topRoom,
-                                                 bottomRoom,
-                                                 midX,
-                                                 floorTexture,
-                                                 wallTexture,
-                                                 ceilingTexture,
-                                                 roomOpenings,
-                                                 roomsA,
-                                                 roomsB) ||
-                        tryBuildVerticalCorridor(meshes,
-                                                 topRoom,
-                                                 bottomRoom,
-                                                 randX,
-                                                 floorTexture,
-                                                 wallTexture,
-                                                 ceilingTexture,
-                                                 roomOpenings,
-                                                 roomsA,
-                                                 roomsB) ||
-                        tryBuildVerticalCorridor(meshes,
-                                                 topRoom,
-                                                 bottomRoom,
-                                                 overlapMin,
-                                                 floorTexture,
-                                                 wallTexture,
-                                                 ceilingTexture,
-                                                 roomOpenings,
-                                                 roomsA,
-                                                 roomsB) ||
-                        tryBuildVerticalCorridor(meshes,
-                                                 topRoom,
-                                                 bottomRoom,
-                                                 overlapMax,
-                                                 floorTexture,
-                                                 wallTexture,
-                                                 ceilingTexture,
-                                                 roomOpenings,
-                                                 roomsA,
-                                                 roomsB)) {
-                        return;
-                    }
+        int center = (overlapMin + overlapMax) / 2;
+        int maxOffset = (overlapMax - overlapMin) / 2;
+
+        for (int offset = 0; offset <= maxOffset; ++offset) {
+            // At offset 0 there's only one candidate coordinate (the center);
+            // beyond that, try both sides of the center at this distance.
+            std::array<int, 2> candidates = {center + offset, center - offset};
+            int candidateCount = (offset == 0) ? 1 : 2;
+
+            for (int i = 0; i < candidateCount; ++i) {
+                int coord = candidates[i];
+                if (coord < overlapMin || coord > overlapMax)
+                    continue;
+
+                bool connected;
+                if (verticalSplit) {
+                    BSPLeaf *left = rayPickRoomHorizontal(roomsA, coord, /*pickRightMost=*/true);
+                    BSPLeaf *right = rayPickRoomHorizontal(roomsB, coord, /*pickRightMost=*/false);
+                    connected = left && right && tryBuildHorizontalCorridor(meshes, left, right, coord, ctx);
+                } else {
+                    BSPLeaf *top = rayPickRoomVertical(roomsA, coord, /*pickBottomMost=*/true);
+                    BSPLeaf *bottom = rayPickRoomVertical(roomsB, coord, /*pickBottomMost=*/false);
+                    connected = top && bottom && tryBuildVerticalCorridor(meshes, top, bottom, coord, ctx);
                 }
+
+                if (connected)
+                    return;
             }
         }
 
-        // If no safe route was found, skip this connector instead of cutting through another room.
+        // No safe route was found anywhere in the overlap; skip this connector
+        // instead of cutting through another room.
     }
 
+    // =========================================================================
+    // 6. Top-level mesh assembly (public API)
+    // =========================================================================
+
+    // Walks the tree building floor meshes for every room, then - as each
+    // internal node finishes - connects its two children with a corridor.
+    // Corridors register doorway openings on the rooms they touch; walls
+    // (which need to know about those openings) are built afterwards in a
+    // separate pass by addRoomWalls().
     static void meshesFromDungeon(BSPNode *node,
                                   std::vector<WorldMesh> &meshes,
                                   const Texture *floorTexture,
@@ -869,13 +871,133 @@ struct LevelGenerator {
 
         if (node->room) {
             addFloorMesh(meshes, node->room->x, node->room->y, node->room->width, node->room->height, "room", floorTexture);
-            addCeilingMesh(
-                meshes, node->room->x, node->room->y, node->room->width, node->room->height, "ceiling_", ceilingTexture);
             return;
         }
 
         meshesFromDungeon(node->childA, meshes, floorTexture, wallTexture, ceilingTexture, roomOpenings);
         meshesFromDungeon(node->childB, meshes, floorTexture, wallTexture, ceilingTexture, roomOpenings);
         connectSiblingSubtrees(meshes, node, floorTexture, wallTexture, ceilingTexture, roomOpenings);
+    }
+
+    // Public entry point: builds a complete renderable Model from a generated
+    // BSP tree (floors, ceilings, corridors, and walls with doorways carved in).
+    static Model generateModelFromDungeon(BSPNode *node,
+                                          unsigned int shaderId,
+                                          const Texture *floorTexture = nullptr,
+                                          const Texture *wallTexture = nullptr,
+                                          const Texture *ceilingTexture = nullptr) {
+        std::vector<WorldMesh> meshes;
+        RoomOpenings roomOpenings;
+
+        // Corridors must be built first: they decide where doorways go, and
+        // addRoomWalls() needs that opening data to carve the right holes.
+        meshesFromDungeon(node, meshes, floorTexture, wallTexture, ceilingTexture, roomOpenings);
+        addRoomWalls(node, meshes, wallTexture, roomOpenings);
+
+        return Model{
+            .shaderId = shaderId,
+            .meshes = meshes,
+        };
+    }
+
+    // =========================================================================
+    // 7. Point light placement (public API)
+    // =========================================================================
+
+    static bool meshBoundsXZ(const WorldMesh &mesh, float &minX, float &maxX, float &minZ, float &maxZ) {
+        if (mesh.vertices.empty())
+            return false;
+
+        minX = std::numeric_limits<float>::max();
+        maxX = std::numeric_limits<float>::lowest();
+        minZ = std::numeric_limits<float>::max();
+        maxZ = std::numeric_limits<float>::lowest();
+
+        for (const auto &v : mesh.vertices) {
+            minX = std::min(minX, v.Position.x);
+            maxX = std::max(maxX, v.Position.x);
+            minZ = std::min(minZ, v.Position.z);
+            maxZ = std::max(maxZ, v.Position.z);
+        }
+        return true;
+    }
+
+    // Small rooms get one central light; larger rooms get two lights spread
+    // along their longer axis so the far corners aren't left dark.
+    static void addRoomPointLights(const WorldMesh &roomMesh, std::vector<PointLightSpawn> &outLights) {
+        float minX, maxX, minZ, maxZ;
+        if (!meshBoundsXZ(roomMesh, minX, maxX, minZ, maxZ))
+            return;
+
+        float width = maxX - minX;
+        float depth = maxZ - minZ;
+        float centerX = (minX + maxX) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
+        float lightY = WALL_HEIGHT - 0.3f;
+
+        glm::vec3 warmColor(1.0f, 0.93f, 0.80f);
+
+        constexpr float ROOM_MULTI_LIGHT_THRESHOLD = 10.0f;
+        if (std::max(width, depth) < ROOM_MULTI_LIGHT_THRESHOLD) {
+            outLights.push_back({.position = glm::vec3(centerX, lightY, centerZ), .color = warmColor, .intensity = 1.0f});
+            return;
+        }
+
+        if (width >= depth) {
+            outLights.push_back({.position = glm::vec3(minX + width * 0.30f, lightY, centerZ), .color = warmColor, .intensity = 1.0f});
+            outLights.push_back({.position = glm::vec3(minX + width * 0.70f, lightY, centerZ), .color = warmColor, .intensity = 1.0f});
+        } else {
+            outLights.push_back({.position = glm::vec3(centerX, lightY, minZ + depth * 0.30f), .color = warmColor, .intensity = 1.0f});
+            outLights.push_back({.position = glm::vec3(centerX, lightY, minZ + depth * 0.70f), .color = warmColor, .intensity = 1.0f});
+        }
+    }
+
+    // Only long corridors get lights, placed a quarter of the way in from
+    // each end - short connectors are assumed to be lit well enough by the
+    // rooms they join.
+    static void addCorridorPointLights(const WorldMesh &corridorMesh, std::vector<PointLightSpawn> &outLights) {
+        float minX, maxX, minZ, maxZ;
+        if (!meshBoundsXZ(corridorMesh, minX, maxX, minZ, maxZ))
+            return;
+
+        float width = maxX - minX;
+        float depth = maxZ - minZ;
+        float length = std::max(width, depth);
+        constexpr float HALLWAY_LIGHT_MIN_LENGTH = 14.0f;
+        if (length < HALLWAY_LIGHT_MIN_LENGTH)
+            return;
+
+        float centerX = (minX + maxX) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
+        float lightY = WALL_HEIGHT - 0.3f;
+        glm::vec3 coolColor(0.9f, 0.95f, 1.0f);
+
+        if (width >= depth) {
+            outLights.push_back({.position = glm::vec3(minX + width * 0.25f, lightY, centerZ), .color = coolColor, .intensity = 0.8f});
+            outLights.push_back({.position = glm::vec3(minX + width * 0.75f, lightY, centerZ), .color = coolColor, .intensity = 0.8f});
+        } else {
+            outLights.push_back({.position = glm::vec3(centerX, lightY, minZ + depth * 0.25f), .color = coolColor, .intensity = 0.8f});
+            outLights.push_back({.position = glm::vec3(centerX, lightY, minZ + depth * 0.75f), .color = coolColor, .intensity = 0.8f});
+        }
+    }
+
+    // Public entry point: scans a finished Model's meshes (identified by the
+    // name prefixes assigned during mesh building) and decides where to spawn
+    // point lights for rooms and long corridors.
+    static std::vector<PointLightSpawn> generatePointLightSpawns(const Model &dungeonModel) {
+        std::vector<PointLightSpawn> pointLights;
+
+        for (const auto &mesh : dungeonModel.meshes) {
+            bool isRoom = mesh.name.rfind("room", 0) == 0;
+            bool isCorridor = mesh.name.rfind("corridor_h_", 0) == 0 || mesh.name.rfind("corridor_v_", 0) == 0;
+
+            if (isRoom) {
+                addRoomPointLights(mesh, pointLights);
+            } else if (isCorridor) {
+                addCorridorPointLights(mesh, pointLights);
+            }
+        }
+
+        return pointLights;
     }
 };

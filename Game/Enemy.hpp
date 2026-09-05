@@ -18,6 +18,7 @@ const float aabbPadding = 0.1;
 const std::string modelPath = "resources/models/hiphop.fbx";
 shared_ptr<Model> enemyModel;
 shared_ptr<Animation> enemyAnim; 
+unsigned int enemyShaderId = 0;
 
 struct Enemy
 {
@@ -37,8 +38,9 @@ struct Enemy
 
         engine->addComponent(enemy, tf);
 
-        unsigned int shaderId = engine->loadShader("shaders/model_loading.vs", "shaders/model_loading.fs");
-        enemyModel->shaderId = shaderId;
+        if (enemyShaderId == 0)
+            enemyShaderId = engine->loadShader("shaders/model_loading.vs", "shaders/model_loading.fs");
+        enemyModel->shaderId = enemyShaderId;
         // WorldMesh mesh;
         // mesh.vertices = {
         //     {{-WIDTH / 2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
