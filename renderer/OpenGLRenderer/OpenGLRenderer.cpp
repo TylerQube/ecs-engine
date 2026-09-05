@@ -1,5 +1,5 @@
-#include "Renderer/Renderer.h"
 #include "OpenGLRenderer.h"
+#include "Renderer/Renderer.h"
 #include "Shader.h"
 #include <cassert>
 #include <iostream>
@@ -9,11 +9,10 @@
 #include "glfw/glfw3.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
-#include <Engine/Types.hpp>
 #include <Engine/Component/Transform.h>
+#include <Engine/Types.hpp>
 
-void OpenGLRenderer::init()
-{
+void OpenGLRenderer::init() {
     if (initialized)
         return;
 
@@ -25,27 +24,21 @@ void OpenGLRenderer::init()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    stbi_set_flip_vertically_on_load(true);
-
     initialized = true;
 }
 
-void OpenGLRenderer::destroy()
-{
+void OpenGLRenderer::destroy() {
     glfwTerminate();
 }
 
-void OpenGLRenderer::framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
+void OpenGLRenderer::framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned int height)
-{
+OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned int height) {
     if (!initialized)
         init();
-    window =
-        glfwCreateWindow(width, height, title, NULL, NULL);
+    window = glfwCreateWindow(width, height, title, NULL, NULL);
     assert(window && "Failed to create GLFW window");
 
     WIDTH = width;
@@ -61,22 +54,17 @@ OpenGLRenderer::OpenGLRenderer(const char *title, unsigned int width, unsigned i
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    stbi_set_flip_vertically_on_load(true);
-
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, dispatchKeyCallback);
     glfwSetCursorPosCallback(window, dispatchMouseCallback);
 }
 
-GLFWwindow *OpenGLRenderer::get_window()
-{
+GLFWwindow *OpenGLRenderer::get_window() {
     return window;
 }
 
-int OpenGLRenderer::beginFrame()
-{
-    if (glfwWindowShouldClose(window))
-    {
+int OpenGLRenderer::beginFrame() {
+    if (glfwWindowShouldClose(window)) {
         destroy();
         return -1;
     }
@@ -86,37 +74,31 @@ int OpenGLRenderer::beginFrame()
     return 0;
 }
 
-void OpenGLRenderer::endFrame()
-{
+void OpenGLRenderer::endFrame() {
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
 
-float OpenGLRenderer::getTime()
-{
+float OpenGLRenderer::getTime() {
     return glfwGetTime();
 }
 
-unsigned int OpenGLRenderer::loadShader(const char *vertexPath, const char *fragmentPath)
-{
+unsigned int OpenGLRenderer::loadShader(const char *vertexPath, const char *fragmentPath) {
     auto shader = Shader(vertexPath, fragmentPath);
     return shader.ID;
 }
 
-void OpenGLRenderer::useShader(unsigned int shaderId)
-{
+void OpenGLRenderer::useShader(unsigned int shaderId) {
     glUseProgram(shaderId);
     activeShader = shaderId;
 }
 
-void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
-{
-    // auto iter = meshes.find(wMesh->getType());
-    // if (iter != meshes.end())
-    // {
-    //     // already loaded
-    //     return;
-    // }
+void OpenGLRenderer::uploadMesh(WorldMesh *wMesh) {
+    auto iter = meshes.find(wMesh->name);
+    if (iter != meshes.end()) {
+        // already loaded
+        return;
+    }
 
     auto mesh = std::make_shared<RenderMesh>();
     mesh->index_count = wMesh->indices.size();
@@ -131,7 +113,8 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
     glBufferData(GL_ARRAY_BUFFER, wMesh->vertices.size() * sizeof(Vertex), &wMesh->vertices[0], GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, wMesh->indices.size() * sizeof(unsigned int), &wMesh->indices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, wMesh->indices.size() * sizeof(unsigned int), &wMesh->indices[0],
+                 GL_STATIC_DRAW);
 
     // set the vertex attribute pointers
     // vertex Positions
@@ -144,48 +127,57 @@ void OpenGLRenderer::uploadMesh(WorldMesh *wMesh)
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, TexCoords));
     // vertex tangent
-    // glEnableVertexAttribArray(3);
-    // glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Tangent));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Tangent));
     // vertex bitangent
-    // glEnableVertexAttribArray(4);
-    // glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Bitangent));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Bitangent));
     // ids
-    // glEnableVertexAttribArray(5);
-    // glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
+    glEnableVertexAttribArray(5);
+    glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, m_BoneIDs));
 
     // weights
-    // glEnableVertexAttribArray(6);
-    // glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, m_Weights));
+
     glBindVertexArray(0);
 
     meshes[wMesh->name] = mesh;
 }
 
-void OpenGLRenderer::renderMesh(WorldMesh *cmesh)
-{
+void OpenGLRenderer::renderMesh(WorldMesh *cmesh, unsigned int shaderId) {
     uploadMesh(cmesh);
     auto iter = meshes.find(cmesh->name);
     assert(iter != meshes.end() && "Mesh not found, did you upload it?");
     auto mesh = iter->second;
 
-    useShader(cmesh->shaderId);
+    useShader(shaderId);
     this->updateShaderMatrices();
-
 
     // bind appropriate textures
     unsigned int diffuseNr = 1;
     unsigned int specularNr = 1;
     unsigned int normalNr = 1;
     unsigned int heightNr = 1;
-    for (unsigned int i = 0; i < cmesh->textures.size(); i++)
-    {
-        // bind the texture
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, cmesh->textures[i].id);
-        // now set the sampler to the correct texture unit
-        glUniform1i(glGetUniformLocation(cmesh->shaderId, "myTexture"), i);
-    }
+    for (unsigned int i = 0; i < cmesh->material.textures.size(); i++) {
+        glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
+        // retrieve texture number (the N in diffuse_textureN)
+        std::string number;
+        std::string name = cmesh->material.textures[i].type;
+        if (name == "texture_diffuse")
+            number = std::to_string(diffuseNr++);
+        else if (name == "texture_specular")
+            number = std::to_string(specularNr++); // transfer unsigned int to string
+        else if (name == "texture_normal")
+            number = std::to_string(normalNr++); // transfer unsigned int to string
+        else if (name == "texture_height")
+            number = std::to_string(heightNr++); // transfer unsigned int to string
 
+        // now set the sampler to the correct texture unit
+        glUniform1i(glGetUniformLocation(shaderId, (name + number).c_str()), i);
+        // and finally bind the texture
+        glBindTexture(GL_TEXTURE_2D, cmesh->material.textures[i].id);
+    }
 
     // draw mesh
     glBindVertexArray(mesh->VAO);
@@ -207,32 +199,56 @@ void OpenGLRenderer::updateShaderMatrices() {
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
 }
 
-void OpenGLRenderer::setViewMatrix(glm::mat4 view)
-{
+void OpenGLRenderer::setViewMatrix(glm::mat4 view) {
     this->view = view;
 }
 
-void OpenGLRenderer::setProjectionMatrix(glm::mat4 projection)
-{
+void OpenGLRenderer::setProjectionMatrix(glm::mat4 projection) {
     this->projection = projection;
 }
 
-void OpenGLRenderer::setModelMatrix(glm::mat4 model)
-{
+void OpenGLRenderer::setModelMatrix(glm::mat4 model) {
     this->model = model;
 }
 
-void OpenGLRenderer::dispatchKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
-{
+void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, const glm::mat4 matrix) {
+    useShader(shaderId);
+    glUniformMatrix4fv(glGetUniformLocation(shaderId, name.c_str()), 1, GL_FALSE, &matrix[0][0]);
+}
+
+void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, const glm::vec3 vector) {
+    useShader(shaderId);
+    glUniform3fv(glGetUniformLocation(shaderId, name.c_str()), 1, &vector[0]);
+}
+
+void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, const glm::vec4 vector) {
+    useShader(shaderId);
+    glUniform4fv(glGetUniformLocation(shaderId, name.c_str()), 1, &vector[0]);
+}
+
+void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, float value) {
+    useShader(shaderId);
+    glUniform1f(glGetUniformLocation(shaderId, name.c_str()), value);
+}
+
+void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, int value) {
+    useShader(shaderId);
+    glUniform1i(glGetUniformLocation(shaderId, name.c_str()), value);
+}
+
+void OpenGLRenderer::setUniform(unsigned int shaderId, const std::string &name, unsigned int value) {
+    useShader(shaderId);
+    glUniform1ui(glGetUniformLocation(shaderId, name.c_str()), value);
+}
+
+void OpenGLRenderer::dispatchKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     auto *renderer = static_cast<OpenGLRenderer *>(glfwGetWindowUserPointer(window));
     if (renderer)
         renderer->key_callback(window, key, scancode, action, mods);
 }
 
-KeyCode glfwKeyToEngineKey(int key)
-{
-    switch (key)
-    {
+KeyCode glfwKeyToEngineKey(int key) {
+    switch (key) {
     case GLFW_KEY_W:
         return W;
     case GLFW_KEY_A:
@@ -252,10 +268,8 @@ KeyCode glfwKeyToEngineKey(int key)
     }
 }
 
-KeyAction glfwActionToEngineAction(int action)
-{
-    switch (action)
-    {
+KeyAction glfwActionToEngineAction(int action) {
+    switch (action) {
     case GLFW_PRESS:
         return PRESS;
     case GLFW_RELEASE:
@@ -267,8 +281,7 @@ KeyAction glfwActionToEngineAction(int action)
     }
 }
 
-void OpenGLRenderer::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
-{
+void OpenGLRenderer::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -278,30 +291,25 @@ void OpenGLRenderer::key_callback(GLFWwindow *window, int key, int scancode, int
     engineKeyCallback(keycode, keyaction);
 }
 
-void OpenGLRenderer::registerKeyCallback(std::function<void(KeyCode, KeyAction)> callback)
-{
+void OpenGLRenderer::registerKeyCallback(std::function<void(KeyCode, KeyAction)> callback) {
     engineKeyCallback = callback;
 }
 
-void OpenGLRenderer::mouse_callback(GLFWwindow *window, double xpos, double ypos)
-{
+void OpenGLRenderer::mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     engineMouseCallback(xpos, ypos);
 }
 
-void OpenGLRenderer::registerMouseCallback(std::function<void(double, double)> callback)
-{
+void OpenGLRenderer::registerMouseCallback(std::function<void(double, double)> callback) {
     engineMouseCallback = callback;
 }
 
-void OpenGLRenderer::dispatchMouseCallback(GLFWwindow *window, double xpos, double ypos)
-{
+void OpenGLRenderer::dispatchMouseCallback(GLFWwindow *window, double xpos, double ypos) {
     auto *renderer = static_cast<OpenGLRenderer *>(glfwGetWindowUserPointer(window));
     if (renderer)
         renderer->mouse_callback(window, xpos, ypos);
 }
 
-void OpenGLRenderer::setMouseCapture(bool capture)
-{
+void OpenGLRenderer::setMouseCapture(bool capture) {
     if (capture)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     else
@@ -310,16 +318,14 @@ void OpenGLRenderer::setMouseCapture(bool capture)
 
 bool OpenGLRenderer::initialized = false;
 
-unsigned int OpenGLRenderer::loadTextureFromFile(const char *path)
-{
+unsigned int OpenGLRenderer::loadTextureFromFile(const char *path) {
     unsigned int id;
     glGenTextures(1, &id);
 
     int width, height, nrChannels;
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
 
-    if (data)
-    {
+    if (data) {
         GLenum format;
         if (nrChannels == 1)
             format = GL_RED;
@@ -338,9 +344,7 @@ unsigned int OpenGLRenderer::loadTextureFromFile(const char *path)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    }
-    else
-    {
+    } else {
         std::cout << "Texture failed to load at path: " << path << std::endl;
     }
     stbi_image_free(data);

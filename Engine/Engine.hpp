@@ -4,6 +4,7 @@
 #include "ComponentManager.hpp"
 #include "SystemManager.hpp"
 #include "InputManager.hpp"
+#include <type_traits>
 #include <Renderer/Renderer.h>
 #include <Renderer/OpenGLRenderer/OpenGLRenderer.h>
 
@@ -90,6 +91,19 @@ public:
         systemManager->setSignature<T>(signature);
     }
 
+    template <typename... Components>
+    std::vector<Entity> queryEntitiesWith()
+    {
+        static_assert(sizeof...(Components) > 0, "queryEntitiesWith requires at least one component type");
+
+        Signature requiredSignature;
+        bool allRegistered = ((componentManager->getComponentId<Components>() != -1) && ...);
+        assert(allRegistered && "All query component types must be registered before querying");
+
+        (requiredSignature.set(componentManager->getComponentId<Components>(), true), ...);
+        return entityManager->getEntitiesWithSignature(requiredSignature);
+    }
+
     unsigned int loadShader(const char *vertexPath, const char *fragmentPath)
     {
         return renderer->loadShader(vertexPath, fragmentPath);
@@ -100,9 +114,34 @@ public:
         renderer->uploadMesh(wMesh);
     }
 
-    void renderMesh(WorldMesh *wMesh)
+    void renderMesh(WorldMesh *wMesh, unsigned int shaderId)
     {
-        renderer->renderMesh(wMesh);
+        renderer->renderMesh(wMesh, shaderId);
+    }
+
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::mat4 matrix)
+    {
+        renderer->setUniform(shaderId, name, matrix);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::vec3 vector)
+    {
+        renderer->setUniform(shaderId, name, vector);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, const glm::vec4 vector)
+    {
+        renderer->setUniform(shaderId, name, vector);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, float value)
+    {
+        renderer->setUniform(shaderId, name, value);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, int value)
+    {
+        renderer->setUniform(shaderId, name, value);
+    }
+    void setUniform(unsigned int shaderId, const std::string& name, unsigned int value)
+    {
+        renderer->setUniform(shaderId, name, value);
     }
 
     void setViewMatrix(glm::mat4 view)

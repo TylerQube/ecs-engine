@@ -21,7 +21,10 @@ public:
     template <typename T>
     void addComponent(Entity entity, T component)
     {
-        assert(componentRegistered<T>() && "Component type not registered!");
+        if(!componentRegistered<T>()) {
+            std::cerr << "Component type not registered: " << typeid(T).name() << "\n"; 
+            assert(false);
+        }
 
         unsigned int id = getComponentId<T>();
 

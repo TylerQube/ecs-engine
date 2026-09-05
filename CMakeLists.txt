@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.15)
-
 project(ECSEngine VERSION 1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -25,6 +24,11 @@ target_include_directories(OpenGLRenderer PRIVATE
 target_link_libraries(OpenGLRenderer PRIVATE
     ${PROJECT_SOURCE_DIR}/dependencies/lib/libglfw.3.3.dylib
 )
+
+target_link_libraries(OpenGLRenderer PRIVATE
+    ${PROJECT_SOURCE_DIR}/dependencies/lib/libassimp.dylib
+)
+
 # ============================= #
 
 # Find macOS frameworks

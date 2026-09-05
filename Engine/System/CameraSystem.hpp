@@ -47,7 +47,7 @@ public:
             glm::mat4 view = glm::lookAt(transform.position, transform.position + camera.front, camera.up);
             engine->setViewMatrix(view);
 
-            glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), engine->getAspectRatio(), 0.1f, 100.0f);
+            glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), engine->getAspectRatio(), 0.1f, 200.0f);
             engine->setProjectionMatrix(projection);
         }
     }
@@ -72,6 +72,7 @@ public:
         if(keysHeld.count(A) || keysDown.count(A)) moveDir -= rightFlat;
         if(keysHeld.count(S) || keysDown.count(S)) moveDir -= frontFlat;
         if(keysHeld.count(D) || keysDown.count(D)) moveDir += rightFlat;
+        if(keysHeld.count(SPACE) || keysDown.count(SPACE)) moveDir += up;
         if(keysHeld.count(LEFT_SHIFT) || keysDown.count(LEFT_SHIFT)) moveDir -= up;
         moveDir = glm::length(moveDir) > 0.0f ? glm::normalize(moveDir) : moveDir;
         moveDir *= movementAcceleration;
