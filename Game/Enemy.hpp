@@ -41,7 +41,7 @@ struct Enemy
         engine->addComponent(enemy, tf);
 
         auto ai = EnemyAI{
-            .viewDistance = 10.0f,
+            .viewDistance = 5.0f,
             .fovAngle = 60.0f,
             .moveSpeed = 2.0f,
             .rotationSpeed = 45.0f,

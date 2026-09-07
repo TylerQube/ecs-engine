@@ -23,6 +23,8 @@ inline std::string EnemyStateToString(EnemyState state) {
 
 struct EnemyAI {
     EnemyState state = EnemyState::Passive;
+    float timeSinceSeenPlayer = 0.0f;
+    float lostPlayerCooldown = 2.0f;
     float viewDistance;
     float fovAngle;
     float moveSpeed;

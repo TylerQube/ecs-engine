@@ -39,6 +39,7 @@ public:
         {
             auto &camera = this->engine->getComponent<Camera>(entity);
             auto &transform = this->engine->getComponent<Transform>(entity);
+            std::cout << transform.rotation.yaw << std::endl;
             updateAcceleration(entity, dt);
 
 
