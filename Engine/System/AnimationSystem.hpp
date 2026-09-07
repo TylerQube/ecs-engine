@@ -7,6 +7,7 @@
 #include "Engine/Engine.hpp"
 #include "Engine/Component/Camera.h"
 #include "Engine/Component/Animation.h"
+#include "Engine/Component/Model.h"
 #include "Engine/Component/Transform.h"
 #include "Engine/Animation/Bone.h"
 
@@ -29,7 +30,16 @@ class AnimationSystem : public System {
 
         for (Entity entity : entities) {
             auto &anim = engine->getComponent<AnimationComponent>(entity);
+            auto &model = engine->getComponent<Model>(entity);
             auto &transform = engine->getComponent<Transform>(entity);
+
+            anim.currentTime += anim.currentAnimation->GetTicksPerSecond() * dt;
+            anim.currentTime = fmod(anim.currentTime, anim.currentAnimation->GetDuration());
+
+            if (!model.visibleInFrustum) {
+                anim.useSkinning = false;
+                continue;
+            }
 
             anim.useSkinning = true;
             if (hasCamera) {
@@ -43,8 +53,6 @@ class AnimationSystem : public System {
             if (!anim.currentAnimation || !anim.play)
                 continue;
 
-            anim.currentTime += anim.currentAnimation->GetTicksPerSecond() * dt;
-            anim.currentTime = fmod(anim.currentTime, anim.currentAnimation->GetDuration());
             calculateBoneTransform(anim, &anim.currentAnimation->GetRootNode(), glm::mat4(1.0f));
         }
     }

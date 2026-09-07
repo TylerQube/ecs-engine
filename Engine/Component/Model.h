@@ -60,6 +60,10 @@ struct Model
 {
     unsigned int shaderId;
     std::vector<WorldMesh> meshes;
+    bool hasLocalBounds = false;
+    glm::vec3 localBoundsMin = glm::vec3(0.0f);
+    glm::vec3 localBoundsMax = glm::vec3(0.0f);
+    bool visibleInFrustum = true;
 
     std::map<std::string, BoneInfo> boneInfo;
     int boneCount;

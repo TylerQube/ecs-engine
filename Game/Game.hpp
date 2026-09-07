@@ -21,6 +21,8 @@
 #include "Engine/Types.hpp"
 
 #include "Enemy.hpp"
+#include "Game/Component/EnemyAI.h";
+#include "Game/System/EnemyAISystem.hpp";
 #include "LevelGen.hpp"
 
 class Game {
@@ -64,8 +66,17 @@ class Game {
         engine->registerComponent<Collider>();
         engine->registerComponent<AABB>();
 
-        auto renderSystem = engine->registerSystem<RenderSystem>();
+        // custom components + systems
+        engine->registerComponent<EnemyAI>();
+
+        auto enemyAISystem = engine->registerSystem<EnemyAISystem>();
         Signature signature;
+        signature.set(engine->getComponentId<EnemyAI>());
+        signature.set(engine->getComponentId<Transform>());
+        engine->setSignature<EnemyAISystem>(signature);
+
+        auto renderSystem = engine->registerSystem<RenderSystem>();
+        signature.reset();
         signature.set(engine->getComponentId<Transform>());
         signature.set(engine->getComponentId<Model>());
         engine->setSignature<RenderSystem>(signature);
@@ -103,7 +114,6 @@ class Game {
 
         auto animSystem = engine->registerSystem<AnimationSystem>();
         signature.reset();
-        signature.set(engine->getComponentId<Transform>());
         signature.set(engine->getComponentId<Model>());
         signature.set(engine->getComponentId<AnimationComponent>());
         engine->setSignature<AnimationSystem>(signature);
@@ -154,7 +164,7 @@ class Game {
         auto dungeon = engine->createEntity("dungeon");
         auto dungeonBSP = LevelGenerator::generateDungeon(0, 0, 50, 50, 20);
 
-        spawnEnemiesInDungeon(engine, dungeonBSP, 10);
+        spawnEnemiesInDungeon(engine, dungeonBSP, 1);
 
         std::vector<BSPLeaf *> rooms;
         LevelGenerator::collectRooms(&dungeonBSP, rooms);
@@ -175,6 +185,8 @@ class Game {
         auto playerAABB = AABB{glm::vec3(-0.1f, -0.5f, -0.1f), glm::vec3(0.1f, 0.2f, 0.1f)};
         engine->addComponent(player, playerCollider);
         engine->addComponent(player, playerAABB);
+
+        enemyAISystem->init(*engine, player);
 
         unsigned int dungeonFloorTexId = engine->loadTextureFromFile("./textures/stone_tile.jpg");
         auto dungeonFloorTexture = Texture{dungeonFloorTexId, "texture_diffuse", "./textures/stone_tile.jpg"};
@@ -279,6 +291,7 @@ class Game {
             colliderSystem->update(deltaTime);
             movementSystem->update(deltaTime);
             renderSystem->update(deltaTime);
+            enemyAISystem->update(deltaTime);
 
             engine->endFrame();
 

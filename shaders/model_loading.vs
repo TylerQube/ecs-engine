@@ -8,7 +8,6 @@ layout(location = 5) in ivec4 boneIds;
 layout(location = 6) in vec4 weights;
 
 out vec2 TexCoords;
-out vec3 LightPos;
 out vec3 Normal;
 out vec3 FragPos;
 
@@ -26,9 +25,11 @@ uniform mat4 finalBonesMatrices[100];
 void main()
 {
     vec4 localPosition = vec4(aPos, 1.0f);
+    vec3 localNormal = aNormal;
 
     if (useSkinning != 0) {
         vec4 totalPosition = vec4(0.0f);
+        vec3 totalNormal = vec3(0.0f);
         for(int i = 0 ; i < MAX_BONE_INFLUENCE ; i++)
         {
             if(boneIds[i] == -1) 
@@ -36,19 +37,21 @@ void main()
             if(boneIds[i] >= MAX_BONES) 
                 continue;
             vec4 skinnedPosition = finalBonesMatrices[boneIds[i]] * vec4(aPos, 1.0f);
+            vec3 skinnedNormal = mat3(finalBonesMatrices[boneIds[i]]) * aNormal;
             totalPosition += skinnedPosition * weights[i];
+            totalNormal += skinnedNormal * weights[i];
         }
         localPosition = totalPosition;
+        localNormal = totalNormal;
     }
 
     vec4 worldPosition = model * localPosition;
-    float snapSize = 0.01;
+    float snapSize = 0.02;
     worldPosition.xyz = floor(worldPosition.xyz / snapSize + 0.5) * snapSize;
 
     gl_Position = projection * view * worldPosition;
 	TexCoords = aTexCoords;
 
-    FragPos = vec3(view * model * vec4(aPos, 1.0f));
-    Normal = mat3(transpose(inverse(model))) * aNormal;  
-    LightPos = vec3(view * vec4(lightPos, 1.0f));
+    FragPos = worldPosition.xyz;
+    Normal = normalize(mat3(transpose(inverse(model))) * normalize(localNormal));
 }

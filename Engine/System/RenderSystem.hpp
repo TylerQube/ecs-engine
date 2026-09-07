@@ -1,6 +1,6 @@
 #include "Engine/Engine.hpp"
 #include "System.h"
-#include <algorithm>
+#include "Engine/System/FrustumCulling.hpp"
 
 class RenderSystem : public System {
   public:
@@ -31,7 +31,8 @@ class RenderSystem : public System {
         bool hasCamera = false;
         auto cameraEntities = engine->queryEntitiesWith<Camera, Transform>();
         if (!cameraEntities.empty()) {
-            auto &camTransform = engine->getComponent<Transform>(cameraEntities[0]);
+            auto cameraEntity = cameraEntities[0];
+            auto &camTransform = engine->getComponent<Transform>(cameraEntity);
             cameraPosition = camTransform.position;
             hasCamera = true;
         }
@@ -39,6 +40,12 @@ class RenderSystem : public System {
         for (Entity entity : entities) {
             auto &model = engine->getComponent<Model>(entity);
             auto &transform = engine->getComponent<Transform>(entity);
+
+            if (!model.visibleInFrustum) {
+                continue;
+            }
+
+            glm::mat4 modelMat = FrustumCulling::buildModelMatrix(transform);
 
             // Set bone matrices for animation
             if (engine->hasComponent<AnimationComponent>(entity)) {
@@ -71,13 +78,6 @@ class RenderSystem : public System {
 
             for (auto &mesh : model.meshes) {
                 engine->setUniform(model.shaderId, "material_receivesLight", mesh.material.receivesLight ? 1 : 0);
-
-                glm::mat4 modelMat = glm::mat4(1.0f);
-                modelMat = glm::translate(modelMat, transform.position);
-                modelMat = glm::rotate(modelMat, glm::radians(transform.rotation.yaw), glm::vec3(1.0f, 0.0f, 0.0f));
-                modelMat = glm::rotate(modelMat, glm::radians(transform.rotation.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
-                modelMat = glm::rotate(modelMat, glm::radians(transform.rotation.roll), glm::vec3(0.0f, 0.0f, 1.0f));
-                modelMat = glm::scale(modelMat, transform.scale);
 
                 engine->setModelMatrix(modelMat);
 

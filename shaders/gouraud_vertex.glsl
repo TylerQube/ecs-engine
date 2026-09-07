@@ -25,7 +25,6 @@ void main() {
     vec4 worldPos = model * vec4(aPos, 1.0);
     vec3 FragPos = worldPos.xyz;
     vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
-    vec3 viewDir = normalize(viewPos - FragPos);
 
     if (material_receivesLight == 0 || numPointLights == 0) {
         VertColor = vec3(1.0);
@@ -34,12 +33,14 @@ void main() {
         vec3 albedo = vec3(1.0); // texture will modulate this in fragment
         for (int i = 0; i < numPointLights; ++i) {
             vec3 lightDir = normalize(pointLights[i].position - FragPos);
+            vec3 lightFacingNormal = faceforward(N, -lightDir, N);
             float distance = length(pointLights[i].position - FragPos);
             float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * distance * distance);
 
-            float diff = max(dot(N, lightDir), 0.0);
+            float diff = max(dot(lightFacingNormal, lightDir), 0.0);
+            vec3 viewDir = normalize(viewPos - FragPos);
             vec3 halfwayDir = normalize(lightDir + viewDir);
-            float spec = pow(max(dot(N, halfwayDir), 0.0), 32.0);
+            float spec = pow(max(dot(lightFacingNormal, halfwayDir), 0.0), 32.0);
 
             vec3 ambient = 0.1 * albedo;
             vec3 diffuse = diff * albedo * pointLights[i].color * pointLights[i].intensity;

@@ -943,12 +943,13 @@ struct LevelGenerator {
             return;
         }
 
+        float lightIntensity = 0.1f;
         if (width >= depth) {
-            outLights.push_back({.position = glm::vec3(minX + width * 0.30f, lightY, centerZ), .color = warmColor, .intensity = 1.0f});
-            outLights.push_back({.position = glm::vec3(minX + width * 0.70f, lightY, centerZ), .color = warmColor, .intensity = 1.0f});
+            outLights.push_back({.position = glm::vec3(minX + width * 0.70f, lightY, centerZ), .color = warmColor, .intensity = lightIntensity});
+            outLights.push_back({.position = glm::vec3(minX + width * 0.30f, lightY, centerZ), .color = warmColor, .intensity = lightIntensity});
         } else {
-            outLights.push_back({.position = glm::vec3(centerX, lightY, minZ + depth * 0.30f), .color = warmColor, .intensity = 1.0f});
-            outLights.push_back({.position = glm::vec3(centerX, lightY, minZ + depth * 0.70f), .color = warmColor, .intensity = 1.0f});
+            outLights.push_back({.position = glm::vec3(centerX, lightY, minZ + depth * 0.30f), .color = warmColor, .intensity = lightIntensity});
+            outLights.push_back({.position = glm::vec3(centerX, lightY, minZ + depth * 0.70f), .color = warmColor, .intensity = lightIntensity});
         }
     }
 

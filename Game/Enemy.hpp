@@ -6,6 +6,8 @@
 #include <Engine/Component/Collider.h>
 #include <Engine/Animation/ModelLoader.h>
 
+#include "Game/Component/EnemyAI.h"
+
 const int HEALTH = 10;
 const int SPEED = 10;
 const std::string tag = "enemy";
@@ -38,20 +40,20 @@ struct Enemy
 
         engine->addComponent(enemy, tf);
 
+        auto ai = EnemyAI{
+            .viewDistance = 10.0f,
+            .fovAngle = 60.0f,
+            .moveSpeed = 2.0f,
+            .rotationSpeed = 45.0f,
+            .attackRange = 1.0f
+        };
+
+        engine->addComponent(enemy, ai);
+
         if (enemyShaderId == 0)
             enemyShaderId = engine->loadShader("shaders/model_loading.vs", "shaders/model_loading.fs");
         enemyModel->shaderId = enemyShaderId;
-        // WorldMesh mesh;
-        // mesh.vertices = {
-        //     {{-WIDTH / 2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-        //     {{WIDTH / 2.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-        //     {{-WIDTH / 2.0f, HEIGHT, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-        //     {{WIDTH / 2.0f, HEIGHT, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-        // };
-        // mesh.indices = {0, 1, 2, 1, 3, 2};
-        // mesh.name = "enemy" + std::to_string(enemy);
-        // mesh.textures.push_back(enemyTex);
-        // renderable.meshes.push_back(mesh);
+
         engine->addComponent(enemy, *enemyModel);
         AnimationComponent animationComponent{
             .currentAnimation = enemyAnim,
