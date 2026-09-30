@@ -28,7 +28,7 @@ target_include_directories(OpenGLRenderer PRIVATE
     ${PROJECT_SOURCE_DIR}
 )
 
-target_link_libraries(OpenGLRenderer PRIVATE
+target_link_libraries(OpenGLRenderer PUBLIC
     glfw
     assimp::assimp
 )
