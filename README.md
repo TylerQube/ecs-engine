@@ -1,6 +1,6 @@
-# Building a Game from “Scratch”
+# Building a Game Engine from “Scratch”
 
-A C++ OpenGL renderer and ECS engine built to explore the underlying systems that get abstracted away by most modern tools.
+A C++ OpenGL renderer and ECS framework built to explore the underlying systems that are abstracted away by most modern tools.
 
 Essentially a code playground for me to experiment with fun tech in an engine context.
 
@@ -8,7 +8,7 @@ I worked my way from opening a window and drawing a triangle on the screen (with
 
 Each solution raised more questions, leading me down even more rabbit holes. 
 
-- The limitations of OOP inheritance led me to a data-driven post via this [awesome blog](https://austinmorlan.com/posts/entity_component_system/) by Austin Morlan.
+- The limitations of OOP inheritance led me to a data-driven approach via this [awesome blog](https://austinmorlan.com/posts/entity_component_system/) by Austin Morlan.
 - My love for procedurally-generated maps (and the dread of building a level editor) led me to use Binary Space Partitioning to quickly spin up levels for a first-person game.
 
 ## What I’ve had fun implementing!
