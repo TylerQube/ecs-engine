@@ -24,3 +24,28 @@ Each solution raised more questions, leading me down even more rabbit holes.
 - UI & Audio
 - Better visual debugging at runtime
 - Multiplayer! (Exploring UDP in action, authoritative server, client prediction, cloud-compatibility?)
+
+## Build & Run Locally 
+(MacOS ARM64 only for now as I threw together the build system on my laptop)
+
+Ensure you have a working C++ environment
+* CMake (v3.15 or higher)
+* Xcode Command Line Tools
+* pkg-config (`brew install pkg-config`)
+
+### Dependencies
+* GLFW and Assimp are installed automatically by [vcpkg](https://github.com/microsoft/vcpkg) (included as a git submodule)
+* GLAD is bundled in `dependencies/`
+
+```bash
+git clone --recursive https://github.com/TylerQube/ecs-engine
+cd ecs-engine
+./vcpkg/bootstrap-vcpkg.sh # one-time vcpkg setup
+mkdir build && cd build
+cmake .. # generate build files (first run takes several minutes while vcpkg builds dependencies)
+cmake --build .
+
+./ECSEngine # run the sandbox game
+```
+
+If you cloned without `--recursive`, run `git submodule update --init` first.
