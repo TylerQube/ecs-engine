@@ -20,8 +20,8 @@ Each solution raised more questions, leading me down even more rabbit holes.
 
 - First-person player controller
 - Sphere-triangle collision
-- Procedural level generator
-<img src="https://i.imgur.com/X8j4chJ.gif" width="200">
+- Procedural level generator (PSX-inspired look for texture/lighting)
+<img src="https://i.imgur.com/P6DWl6l.gif" width="200">
 
 ## What I’ll try next?
 - UI & Audio
