@@ -16,9 +16,12 @@ Each solution raised more questions, leading me down even more rabbit holes.
 - 3D renderer and shader system
 - Entity-Component-System architecture (love this for quickly adding new behavior)
 - Skeletal animation (supports FBX thanks to ASSIMP)
+<img src="https://i.imgur.com/xSJhxHa.gif" width="150">
+
 - First-person player controller
 - Sphere-triangle collision
 - Procedural level generator
+<img src="https://i.imgur.com/X8j4chJ.gif" width="200">
 
 ## What I’ll try next?
 - UI & Audio
