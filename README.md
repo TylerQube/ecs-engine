@@ -46,9 +46,9 @@ cd ecs-engine
 ./vcpkg/bootstrap-vcpkg.sh # one-time vcpkg setup
 mkdir build && cd build
 cmake .. # generate build files (first run takes several minutes while vcpkg builds dependencies)
-cmake --build .
+cmake --build build # (run this from project root)
 
-./ECSEngine # run the sandbox game
+./build/ECSEngine # run the sandbox game
 ```
 
 If you cloned without `--recursive`, run `git submodule update --init` first.
