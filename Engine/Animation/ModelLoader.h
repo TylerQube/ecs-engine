@@ -38,7 +38,7 @@ class ModelLoader {
         // read file via ASSIMP
         Assimp::Importer importer;
         const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                                                           aiProcess_FlipUVs | aiProcess_CalcTangentSpace |
+                                   aiProcess_CalcTangentSpace |
                                                            aiProcess_PopulateArmatureData | aiProcess_LimitBoneWeights);
         // check for errors
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
@@ -179,6 +179,8 @@ class ModelLoader {
         if (material->Get(AI_MATKEY_SHININESS, shine) == AI_SUCCESS)
             mat.shininess = shine;
 
+        mat.textures = textures;
+
 
         ExtractBoneWeightForVertices(vertices, mesh, scene, boneInfo, boneCountDst);
 
@@ -233,6 +235,11 @@ class ModelLoader {
         for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
             aiString str;
             mat->GetTexture(type, i, &str);
+            std::string texturePath = str.C_Str();
+            std::string resolvedPath = (!texturePath.empty() && texturePath.front() == '/')
+                                           ? texturePath
+                                           : directory + "/" + texturePath;
+            std::cout << "Loading texture for " << typeName << ": " << resolvedPath << std::endl;
             // check if texture was loaded before and if so, continue to next iteration: skip loading a new texture
             bool skip = false;
             for (unsigned int j = 0; j < textures_loaded.size(); j++) {
@@ -246,9 +253,9 @@ class ModelLoader {
             if (!skip) { // if texture hasn't been loaded already, load it
                 Texture texture;
                 std::cout << directory << std::endl;
-                texture.id = TextureFromFile(str.C_Str());
+                texture.id = TextureFromFile(resolvedPath.c_str());
                 texture.type = typeName;
-                texture.path = str.C_Str();
+                texture.path = resolvedPath;
                 textures.push_back(texture);
                 textures_loaded.push_back(texture); // store it as texture loaded for entire model, to ensure we won't
                                                     // unnecessary load duplicate textures.
@@ -266,7 +273,9 @@ unsigned int TextureFromFile(const char *path) {
     glGenTextures(1, &textureID);
 
     int width, height, nrComponents;
+    stbi_set_flip_vertically_on_load(true);
     unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
+    stbi_set_flip_vertically_on_load(false);
     if (data) {
         GLenum format;
         if (nrComponents == 1)

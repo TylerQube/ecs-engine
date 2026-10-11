@@ -42,8 +42,8 @@ void main()
     }
 
     vec4 worldPosition = model * localPosition;
-    float snapSize = 0.01;
-    worldPosition.xyz = floor(worldPosition.xyz / snapSize + 0.5) * snapSize;
+    // float snapSize = 0.01;
+    // worldPosition.xyz = floor(worldPosition.xyz / snapSize + 0.5) * snapSize;
 
     gl_Position = projection * view * worldPosition;
 	TexCoords = aTexCoords;

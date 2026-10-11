@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <iostream>
 #include <glm/glm.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -27,7 +28,17 @@ public:
         Assimp::Importer importer;
 
         const aiScene *scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
-        assert(scene && scene->mRootNode);
+        if (!scene || !scene->mRootNode)
+        {
+            std::cerr << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+            assert(scene && scene->mRootNode);
+        }
+
+        if(scene->mNumAnimations == 0)
+        {
+            std::cerr << "WARNING::ASSIMP model has no animation data" << std::endl;
+            return;
+        }
 
         auto anim = scene->mAnimations[0];
         duration = anim->mDuration;

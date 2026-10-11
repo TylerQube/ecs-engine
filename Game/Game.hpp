@@ -142,15 +142,6 @@ class Game {
         engine->addComponent(wall, wallCollider);
         engine->addComponent(wall, wallAABB);
 
-        auto room = engine->createEntity("room");
-        auto roomModel = ModelLoader::loadModel("resources/models/corridor1.glb", shader);
-        roomModel.shaderId = shader;
-        engine->addComponent(
-            room,
-            Transform{
-                glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f), glm::vec3(0.0f), {0.0f, 0.0f, -90.0f}, glm::vec3(1.0f)});
-        engine->addComponent(room, roomModel);
-
         auto dungeon = engine->createEntity("dungeon");
         auto dungeonBSP = LevelGenerator::generateDungeon(0, 0, 50, 50, 20);
 
