@@ -17,7 +17,7 @@ Each solution raised more questions, leading me down even more rabbit holes.
 - Entity-Component-System architecture (love this for quickly adding new behavior)
 - Skeletal animation (supports FBX thanks to ASSIMP)
 
-    <img src="https://i.imgur.com/xSJhxHa.gif" width="150">
+    <img src="https://i.imgur.com/xSJhxHa.gif" width="150">&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://i.imgur.com/I91S0qY.gif" width="170">
 
 - First-person player controller
 - Sphere-triangle collision
