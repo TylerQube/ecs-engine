@@ -36,7 +36,7 @@ struct Enemy
 
         location.y += 0.1;
         auto tf = Transform{
-            location,
+            .position = location,
             .velocity = glm::vec3(0.0f),
             .acceleration = glm::vec3(0.0f),
             .rotation = {0.0f, 0.0f, 0.0f},

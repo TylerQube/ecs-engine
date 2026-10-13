@@ -2,6 +2,7 @@
 #include "Engine/Component/Model.h"
 #include <Engine/Component/Transform.h>
 #include <Engine/Types.hpp>
+#include <functional>
 
 class Renderer
 {
