@@ -57,11 +57,15 @@ class ModelLoader {
 
         std::cout << "Loaded model with " << meshes.size() << " meshes and " << boneInfoMap.size() << " bones"
                   << std::endl;
+        Skeleton skeleton{
+            .bones = boneInfoMap,
+            .boneCount = boneCount,
+        };
+
         return Model{
             .shaderId = shaderId,
             .meshes = meshes,
-            .boneInfo = boneInfoMap,
-            .boneCount = boneCount,
+            .skeleton = skeleton,
         };
     }
 

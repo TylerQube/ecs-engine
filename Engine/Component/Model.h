@@ -55,12 +55,14 @@ struct WorldMesh
     std::string name;
 };
 
+struct Skeleton {
+    std::map<std::string, BoneInfo> bones;
+    int boneCount = 0;
+};
 
 struct Model
 {
     unsigned int shaderId;
     std::vector<WorldMesh> meshes;
-
-    std::map<std::string, BoneInfo> boneInfo;
-    int boneCount;
+    Skeleton skeleton;
 };

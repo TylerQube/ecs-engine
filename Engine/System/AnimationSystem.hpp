@@ -1,14 +1,14 @@
 #pragma once
 
+#include "Engine/Animation/Bone.h"
+#include "Engine/Component/Animation.h"
+#include "Engine/Component/Camera.h"
+#include "Engine/Component/Transform.h"
+#include "Engine/Engine.hpp"
+#include "System.h"
+#include <glm/glm.hpp>
 #include <iostream>
 #include <string>
-#include <glm/glm.hpp>
-#include "System.h"
-#include "Engine/Engine.hpp"
-#include "Engine/Component/Camera.h"
-#include "Engine/Component/Animation.h"
-#include "Engine/Component/Transform.h"
-#include "Engine/Animation/Bone.h"
 
 class AnimationSystem : public System {
   public:
@@ -30,6 +30,7 @@ class AnimationSystem : public System {
         for (Entity entity : entities) {
             auto &anim = engine->getComponent<AnimationComponent>(entity);
             auto &transform = engine->getComponent<Transform>(entity);
+            auto &model = engine->getComponent<Model>(entity);
 
             anim.useSkinning = true;
             if (hasCamera) {
@@ -43,28 +44,28 @@ class AnimationSystem : public System {
             if (!anim.currentAnimation || !anim.play)
                 continue;
 
-            anim.currentTime += anim.currentAnimation->GetTicksPerSecond() * dt;
-            anim.currentTime = fmod(anim.currentTime, anim.currentAnimation->GetDuration());
-            calculateBoneTransform(anim, &anim.currentAnimation->GetRootNode(), glm::mat4(1.0f));
+            anim.currentTime += anim.currentAnimation->ticksPerSecond * dt;
+            anim.currentTime = fmod(anim.currentTime, anim.currentAnimation->duration);
+            calculateBoneTransform(model.skeleton, anim, &anim.currentAnimation->rootNode, glm::mat4(1.0f));
         }
     }
 
   private:
-    void calculateBoneTransform(AnimationComponent &anim, const AssimpNodeData *node,
+    void calculateBoneTransform(const Skeleton &skeleton, AnimationComponent &anim, const AssimpNodeData *node,
                                 glm::mat4 parentTransform) {
         std::string nodeName = node->name;
         glm::mat4 nodeTransform = node->transformation;
 
-        Bone *Bone = anim.currentAnimation->FindBone(nodeName);
+        auto bone = anim.currentAnimation->FindBone(nodeName);
 
-        if (Bone) {
-            Bone->Update(anim.currentTime);
-            nodeTransform = Bone->GetLocalTransform();
+        if (bone) {
+            bone->Update(anim.currentTime);
+            nodeTransform = bone->GetLocalTransform();
         }
 
         glm::mat4 globalTransformation = parentTransform * nodeTransform;
 
-        auto boneInfoMap = anim.currentAnimation->GetBoneIDMap();
+        auto boneInfoMap = skeleton.bones;
         if (boneInfoMap.find(nodeName) != boneInfoMap.end()) {
             int index = boneInfoMap[nodeName].id;
             glm::mat4 offset = boneInfoMap[nodeName].offset;
@@ -72,6 +73,6 @@ class AnimationSystem : public System {
         }
 
         for (int i = 0; i < node->childrenCount; i++)
-            calculateBoneTransform(anim, &node->children[i], globalTransformation);
+            calculateBoneTransform(skeleton, anim, &node->children[i], globalTransformation);
     }
 };
